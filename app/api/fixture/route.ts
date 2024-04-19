@@ -1,5 +1,4 @@
 import config from '/Users/darshan/Documents/GitHub/oracle/config';
-// import { Field, PrivateKey, PublicKey, Signature } from 'o1js';
 import fetch from 'node-fetch';
 import dayjs from 'dayjs';
 
@@ -48,28 +47,6 @@ async function fetchNextFixtureData() {
         return null;
     }
 }
-
-// async function signFixtureData(fixtureData: any) {
-//     const signature = Signature.create( PRIVATE_KEY, 
-//         [
-//             Field(fixtureData.id),
-//             Field(fixtureData.localteam_id),
-//             Field(fixtureData.visitorteam_id),
-//             Field(fixtureData.starting_at),
-//             Field(fixtureData.timestamp)
-//         ]
-//     )
-
-//     return {
-//         fixtureID: fixtureData.fixtureID,
-//         localTeamID: fixtureData.localTeamID,
-//         visitorTeamID: fixtureData.visitorTeamID,
-//         startingAt: fixtureData.startingAt,
-//         timestamp: fixtureData.timestamp,
-//         publicKey: PublicKey.fromPrivateKey(PRIVATE_KEY).toBase58(),
-//         signature: signature.toBase58()
-//     }
-// }
 
 export async function GET(request: Request) {
     const fixtureData = await fetchNextFixtureData();
