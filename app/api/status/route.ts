@@ -1,7 +1,9 @@
 import config from '/Users/darshan/Documents/GitHub/oracle/config';
 import fetch from 'node-fetch';
+import dayjs from 'dayjs';
 
 import Client from 'mina-signer';
+import { time } from 'console';
 const client = new Client({ network: 'testnet' });
 
 const PRIVATE_KEY = config.PRIVATE_KEY;
@@ -49,6 +51,7 @@ function signFixtureData(currentStatus: FixtureStatus) {
             id: currentStatus.id,
             status: currentStatus.status,
             winnerTeamID: currentStatus.winner_team_id,
+            timestamp: dayjs(new Date())
         },
         signature: signature.signature,
         publicKey: signature.publicKey,

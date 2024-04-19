@@ -51,6 +51,7 @@ function signFixtureData(firstFixture: NextFixture) {
             localTeamID: firstFixture.localteam_id,
             visitorTeamID: firstFixture.visitorteam_id,
             startingAt: firstFixture.starting_at,
+            timestamp: dayjs(new Date())
         },
         signature: signature.signature,
         publicKey: signature.publicKey,
