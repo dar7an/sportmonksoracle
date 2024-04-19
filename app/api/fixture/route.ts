@@ -32,14 +32,6 @@ async function fetchNextFixtureData() {
 
         const data = await response.json() as any;
         const firstFixture: NextFixture = data.data[0];
-        
-        // return {
-        //     fixtureID: firstFixture.id,
-        //     localTeamID: firstFixture.localteam_id,
-        //     visitorTeamID: firstFixture.visitorteam_id,
-        //     startingAt: firstFixture.starting_at,
-        // };
-
         return firstFixture;
     } catch (error) {
         console.log('Error fetching data: ', error);
