@@ -1,10 +1,9 @@
-import config from '/Users/darshan/Documents/GitHub/oracle/config';
-import fetch from 'node-fetch';
-import dayjs from 'dayjs';
+import config from "/Users/darshan/Documents/GitHub/oracle/config";
+import fetch from "node-fetch";
+import dayjs from "dayjs";
 
-import Client from 'mina-signer';
-import { time } from 'console';
-const client = new Client({ network: 'testnet' });
+import Client from "mina-signer";
+const client = new Client({ network: "testnet" });
 
 const PRIVATE_KEY = config.PRIVATE_KEY;
 const API_KEY = config.API_KEY;
@@ -19,39 +18,38 @@ interface FixtureStatus {
 async function fetchFixtureStatus() {
     try {
         const response = await fetch(URL, {
-            method: 'GET',
+            method: "GET",
             headers: {
-                'Accept': 'application/json'
-            }
+                Accept: "application/json",
+            },
         });
 
         if (!response.ok) {
-            console.log('Error fetching data: ', response);
+            console.log("Error fetching data: ", response);
             throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
-        const data = await response.json() as any;
+        const data = (await response.json()) as any;
         const currentStatus: FixtureStatus = data.data;
         return currentStatus;
     } catch (error) {
-        console.log('Error fetching data: ', error);
+        console.log("Error fetching data: ", error);
         return null;
     }
 }
-
 
 function signFixtureData(currentStatus: FixtureStatus) {
     const signature = client.signMessage(
         JSON.stringify(currentStatus),
         PRIVATE_KEY
     );
-    
+
     return {
         data: {
             id: currentStatus.id,
             status: currentStatus.status,
             winnerTeamID: currentStatus.winner_team_id,
-            timestamp: dayjs(new Date())
+            timestamp: dayjs(new Date()),
         },
         signature: signature.signature,
         publicKey: signature.publicKey,
@@ -63,12 +61,12 @@ export async function GET() {
     if (fixtureData) {
         return new Response(JSON.stringify(signFixtureData(fixtureData)), {
             headers: {
-                'Content-Type': 'application/json'
-            }
+                "Content-Type": "application/json",
+            },
         });
     } else {
-        return new Response('Error fetching data', {
-            status: 500
+        return new Response("Error fetching data", {
+            status: 500,
         });
     }
 }
