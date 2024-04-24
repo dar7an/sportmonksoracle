@@ -7,7 +7,8 @@ const client = new Client({ network: "testnet" });
 
 const PRIVATE_KEY = config.PRIVATE_KEY;
 const API_KEY = config.API_KEY;
-const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/59162?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
+const FIXTURE_ID = config.FIXTURE_ID;
+const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${FIXTURE_ID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
 
 interface FixtureStatus {
     id: number;
