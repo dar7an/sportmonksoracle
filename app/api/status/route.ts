@@ -1,4 +1,5 @@
 import config from "/Users/darshan/Documents/GitHub/oracle/config";
+import { fetchNextFixtureData } from "/Users/darshan/Documents/GitHub/oracle/app/api/fixture/route";
 import fetch from "node-fetch";
 import dayjs from "dayjs";
 
@@ -7,7 +8,6 @@ const client = new Client({ network: "testnet" });
 
 const PRIVATE_KEY = config.PRIVATE_KEY;
 const API_KEY = config.API_KEY;
-const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/59162?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
 
 interface FixtureStatus {
     id: number;
@@ -15,7 +15,8 @@ interface FixtureStatus {
     winner_team_id: number;
 }
 
-async function fetchFixtureStatus() {
+async function fetchFixtureStatus(fixtureID: number) {
+    const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
     try {
         const response = await fetch(URL, {
             method: "GET",
@@ -57,16 +58,21 @@ function signFixtureData(currentStatus: FixtureStatus) {
 }
 
 export async function GET() {
-    const fixtureData = await fetchFixtureStatus();
+    const fixtureData = await fetchNextFixtureData();
+
     if (fixtureData) {
-        return new Response(JSON.stringify(signFixtureData(fixtureData)), {
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-    } else {
-        return new Response("Error fetching data", {
-            status: 500,
-        });
+        const fixtureID = fixtureData.id;
+        const statusData = await fetchFixtureStatus(fixtureID);
+        if (statusData) {
+            return new Response(JSON.stringify(signFixtureData(statusData)), {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+        } else {
+            return new Response("Error fetching data", {
+                status: 500,
+            });
+        }
     }
 }
