@@ -16,7 +16,7 @@ interface NextFixture {
     starting_at: string;
 }
 
-export async function fetchNextFixtureData() {
+async function fetchNextFixtureData() {
     try {
         const response = await fetch(URL, {
             method: "GET",
