@@ -48,7 +48,7 @@ async function fetchFixtureStatus() {
             case "1st Innings":
             case "Innings Break":
             case "2nd Innings":
-            case "Int.": // Interuption
+            case "Int.":
                 status = 1;
                 break;
             case "Finished":
