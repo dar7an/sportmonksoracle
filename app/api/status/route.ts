@@ -50,7 +50,7 @@ function signFixtureData(currentStatus: FixtureStatus) {
             id: currentStatus.id,
             status: currentStatus.status,
             winnerTeamID: currentStatus.winner_team_id,
-            timestamp: dayjs(new Date()),
+            timestamp: dayjs(new Date()).unix(),
         },
         signature: signature.signature,
         publicKey: signature.publicKey,
