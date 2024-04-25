@@ -10,10 +10,16 @@ const API_KEY = config.API_KEY;
 const FIXTURE_ID = config.FIXTURE_ID;
 const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${FIXTURE_ID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
 
-interface FixtureStatus {
+interface SportsMonksFixtureStatus {
     id: number;
     status: string;
     winner_team_id: number;
+}
+
+interface FixtureStatus {
+    fixtureID: number;
+    status: number;
+    winnerTeamID: number;
 }
 
 async function fetchFixtureStatus() {
@@ -31,25 +37,52 @@ async function fetchFixtureStatus() {
         }
 
         const data = (await response.json()) as any;
-        const currentStatus: FixtureStatus = data.data;
-        return currentStatus;
+        const sportsmonksFixtureStatus: SportsMonksFixtureStatus = data.data;
+
+        // https://docs.sportmonks.com/cricket/statuses-and-definitions
+        let status: number;
+        switch (sportsmonksFixtureStatus.status) {
+            case "NS":
+                status = 0;
+                break;
+            case "1st Innings":
+            case "Innings Break":
+            case "2nd Innings":
+            case "Int.": // Interuption
+                status = 1;
+                break;
+            case "Finished":
+                status = 2;
+                break;
+            default:
+                status = -1;
+                break;
+        }
+
+        const fixtureStatus: FixtureStatus = {
+            fixtureID: sportsmonksFixtureStatus.id,
+            status: status,
+            winnerTeamID: sportsmonksFixtureStatus.winner_team_id,
+        };
+
+        return fixtureStatus;
     } catch (error) {
         console.log("Error fetching data: ", error);
         return null;
     }
 }
 
-function signFixtureData(currentStatus: FixtureStatus) {
+function signFixtureData(fixtureStatus: FixtureStatus) {
     const signature = client.signMessage(
-        JSON.stringify(currentStatus),
+        JSON.stringify(fixtureStatus),
         PRIVATE_KEY
     );
 
     return {
         data: {
-            id: currentStatus.id,
-            status: currentStatus.status,
-            winnerTeamID: currentStatus.winner_team_id,
+            id: fixtureStatus.fixtureID,
+            status: fixtureStatus.status,
+            winnerTeamID: fixtureStatus.winnerTeamID,
             timestamp: dayjs(new Date()).unix(),
         },
         signature: signature.signature,
