@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.10",
+    "dotenv": "^16.4.5",
     "mina-signer": "^3.0.5",
     "next": "14.2.2",
     "o1js": "^0.18.0",

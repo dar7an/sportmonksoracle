@@ -1,13 +1,12 @@
-import config from "/Users/darshan/Documents/GitHub/oracle/config";
 import fetch from "node-fetch";
 import dayjs from "dayjs";
 
 import Client from "mina-signer";
 const client = new Client({ network: "testnet" });
 
-const PRIVATE_KEY = config.PRIVATE_KEY;
-const API_KEY = config.API_KEY;
-const FIXTURE_ID = config.FIXTURE_ID;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const API_KEY = process.env.API_KEY;
+const FIXTURE_ID = process.env.FIXTURE_ID;
 const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${FIXTURE_ID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
 
 interface SportsMonksFixtureStatus {
@@ -75,7 +74,7 @@ async function fetchFixtureStatus() {
 function signFixtureData(fixtureStatus: FixtureStatus) {
     const signature = client.signMessage(
         JSON.stringify(fixtureStatus),
-        PRIVATE_KEY
+        String(PRIVATE_KEY)
     );
 
     return {
