@@ -4,19 +4,19 @@ This application is a zero knowledge oracle ([`zkOracle`](https://minaprotocol.c
 
 ## Example
 
-A deployed Vercel domain can be accessed through [`sportmonksoracle.vercel.app`](https://sportmonksoracle.vercel.app)
+A deployed Vercel domain can be accessed through [`https://sportmonksoracle.vercel.app`](https://sportmonksoracle.vercel.app)
 
 ### Endpoints
 
 The application currently configured for IPL 2024 and offers the following endpoints:
 
--   [`/api/fixture`](https://sportmonksoracle.vercel.app/api/fixture): Gets the next scheduled fixture
+-   [`fixture`](https://sportmonksoracle.vercel.app/api/fixture): Gets the next scheduled fixture
     -   fixtureID
     -   localTeamID
     -   visitorTeamID
     -   startingAt
     -   timestamp
--   [`/api/status`](https://sportmonksoracle.vercel.app/api/status) Gets the current status of a specific fixture
+-   [`status/<fixtureID>`](https://sportmonksoracle.vercel.app/api/status) Gets the current status of a specific fixture
     -   fixtureID
     -   status
     -   winnerTeamID
@@ -79,11 +79,11 @@ There are multiple ways to install Node.js. The easiest way is to use a [`packag
 ### Clone the Repsitory
 
 ```bash
-git clone https://github.com/dar7an/oracle.git
+git clone https://github.com/dar7an/sportmonksoracle.git
 ```
 
 ```bash
-cd oracle
+cd sportmonksoracle
 ```
 
 ### Install or Update Dependencies
@@ -110,7 +110,7 @@ SEASON_ID = 1484
 FIXTURE_ID = <FIXTURE_ID FOR STATUS>
 ```
 
-### Run the Application
+### Build and Run the Application
 
 ```bash
 npm run build
