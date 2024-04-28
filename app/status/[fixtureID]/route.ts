@@ -6,8 +6,6 @@ const client = new Client({ network: "testnet" });
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const API_KEY = process.env.API_KEY;
-const FIXTURE_ID = process.env.FIXTURE_ID;
-const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${FIXTURE_ID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
 
 interface SportsMonksFixtureStatus {
     id: number;
@@ -21,8 +19,9 @@ interface FixtureStatus {
     winnerTeamID: number;
 }
 
-async function fetchFixtureStatus() {
+async function fetchFixtureStatus(fixtureID: number) {
     try {
+        const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
         const response = await fetch(URL, {
             method: "GET",
             headers: {
@@ -38,7 +37,6 @@ async function fetchFixtureStatus() {
         const data = (await response.json()) as any;
         const sportsmonksFixtureStatus: SportsMonksFixtureStatus = data.data;
 
-        // https://docs.sportmonks.com/cricket/statuses-and-definitions
         let status: number;
         switch (sportsmonksFixtureStatus.status) {
             case "NS":
@@ -89,8 +87,12 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
     };
 }
 
-export async function GET() {
-    const fixtureData = await fetchFixtureStatus();
+export async function GET(
+    request: Request,
+    { params }: { params: { fixtureID: string } }
+) {
+    const fixtureID = Number(params.fixtureID);
+    const fixtureData = await fetchFixtureStatus(fixtureID);
     if (fixtureData) {
         return new Response(JSON.stringify(signFixtureData(fixtureData)), {
             headers: {
