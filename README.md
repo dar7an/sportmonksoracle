@@ -10,13 +10,13 @@ A deployed Vercel domain can be accessed through [`https://sportmonksoracle.verc
 
 The application currently configured for IPL 2024 and offers the following endpoints:
 
--   [`fixture`](https://sportmonksoracle.vercel.app/api/fixture): Gets the next scheduled fixture. This is the default homepage redirect.
+-   [`fixture`](https://sportmonksoracle.vercel.app/fixture): Gets the next scheduled fixture. This is the default homepage redirect.
     -   fixtureID
     -   localTeamID
     -   visitorTeamID
     -   startingAt
     -   timestamp
--   [`status/<fixtureID>`](https://sportmonksoracle.vercel.app/api/status) Gets the current status of a specific fixture
+-   [`status/<fixtureID>`](https://sportmonksoracle.vercel.app/status/58328) Gets the current status of a specific fixture
     -   fixtureID
     -   status
     -   winnerTeamID
@@ -28,7 +28,7 @@ The endpoints always provide the same output as Sportsmonks Cricket API version 
 
 ### fixtureID
 
-ID of the fixture
+The IPL 2024 IDs of a fixture
 
 | fixtureID | localTeam ID | visitorTeamID |
 | --------- | :----------: | :-----------: |
@@ -121,6 +121,7 @@ ID of the fixture
 | SRH  |  9   |
 | GT   | 1976 |
 | LSG  | 1979 |
+| TBC  | 2732 |
 
 ### startingAt
 
@@ -180,11 +181,11 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 Create a file `.env` with the following:
 
 ```bash
-API_KEY = <SPORTSMONKS API KEY>
-PRIVATE_KEY = <ORACLE PRIVATE KEY>
-LEAGUE_ID = 1
-SEASON_ID = 1484
-FIXTURE_ID = <FIXTURE_ID FOR STATUS>
+API_KEY =           // SPORTSMONKS API KEY
+PRIVATE_KEY =       // ORACLE PRIVATE KEY
+LEAGUE_ID = 1       // IPL
+SEASON_ID = 1484    // 2024
+FIXTURE_ID =        // FIXTURE_ID FOR STATUS
 ```
 
 ### Build and Run the Application
