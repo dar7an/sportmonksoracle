@@ -4,27 +4,34 @@ import dayjs from "dayjs";
 import Client from "mina-signer";
 const client = new Client({ network: "testnet" });
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const API_KEY = process.env.API_KEY;
-const LEAGUE_ID = process.env.LEAGUE_ID;
-const SEASON_ID = process.env.SEASON_ID;
+// Ensure required environment variables are present
+const { PRIVATE_KEY, API_KEY, LEAGUE_ID, SEASON_ID } = process.env;
+
+if (!PRIVATE_KEY || !API_KEY || !LEAGUE_ID || !SEASON_ID) {
+    console.error("Missing required environment variables.");
+    process.exit(1);
+}
+
+// API URL
 const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures?filter[league_id]=${LEAGUE_ID}&filter[season_id]=${SEASON_ID}&filter[status]=NS&fields[fixtures]=id,localteam_id,visitorteam_id,starting_at&api_token=${API_KEY}`;
 
-interface getNextFixture {
+// Interfaces for data types
+interface NextFixtureData {
     id: number;
     localteam_id: number;
     visitorteam_id: number;
     starting_at: string;
 }
 
-interface NextFixture {
+interface ProcessedFixtureData {
     id: number;
     localteam_id: number;
     visitorteam_id: number;
     starting_at: number;
 }
 
-async function fetchNextFixtureData() {
+// Function to fetch fixture data with error handling and type assertion
+async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
     try {
         const response = await fetch(URL, {
             method: "GET",
@@ -34,27 +41,31 @@ async function fetchNextFixtureData() {
         });
 
         if (!response.ok) {
-            console.log("Error fetching data: ", response);
-            throw new Error(`HTTP Error! Status: ${response.status}`);
+            console.error(
+                "Error fetching data:",
+                response.status,
+                response.statusText
+            );
+            return null; // Indicate error by returning null
         }
 
-        const data = (await response.json()) as any;
-        const getFirstFixture: getNextFixture = data.data[0];
+        const data = (await response.json()) as { data: NextFixtureData[] };
+        const firstFixture = data.data[0];
 
-        const firstFixture: NextFixture = {
-            id: getFirstFixture.id,
-            localteam_id: getFirstFixture.localteam_id,
-            visitorteam_id: getFirstFixture.visitorteam_id,
-            starting_at: dayjs(getFirstFixture.starting_at).unix(),
+        return {
+            id: firstFixture.id,
+            localteam_id: firstFixture.localteam_id,
+            visitorteam_id: firstFixture.visitorteam_id,
+            starting_at: dayjs(firstFixture.starting_at).unix(),
         };
-        return firstFixture;
     } catch (error) {
-        console.log("Error fetching data: ", error);
-        return null;
+        console.error("Error fetching data:", error);
+        return null; // Indicate error by returning null
     }
 }
 
-function signFixtureData(fixture: NextFixture) {
+// Function to sign fixture data
+function signFixtureData(fixture: ProcessedFixtureData) {
     const signature = client.signMessage(
         JSON.stringify(fixture),
         String(PRIVATE_KEY)
@@ -73,16 +84,18 @@ function signFixtureData(fixture: NextFixture) {
     };
 }
 
+// Main function (async to handle asynchronous operations)
 export async function GET() {
     const fixtureData = await fetchNextFixtureData();
+
     if (fixtureData) {
-        return new Response(JSON.stringify(signFixtureData(fixtureData)), {
-            headers: {
-                "Content-Type": "application/json",
-            },
+        const signedData = signFixtureData(fixtureData);
+        return new Response(JSON.stringify(signedData), {
+            headers: { "Content-Type": "application/json" },
         });
     } else {
-        return new Response("Error fetching data", {
+        // Return a more informative error response
+        return new Response("Failed to fetch or process fixture data", {
             status: 500,
         });
     }
