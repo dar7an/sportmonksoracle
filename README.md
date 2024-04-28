@@ -10,7 +10,7 @@ A deployed Vercel domain can be accessed through [`https://sportmonksoracle.verc
 
 The application currently configured for IPL 2024 and offers the following endpoints:
 
--   [`fixture`](https://sportmonksoracle.vercel.app/api/fixture): Gets the next scheduled fixture
+-   [`fixture`](https://sportmonksoracle.vercel.app/api/fixture): Gets the next scheduled fixture. This is the default homepage redirect.
     -   fixtureID
     -   localTeamID
     -   visitorTeamID
@@ -32,18 +32,18 @@ ID of the fixture
 
 ### localTeamID, visitorTeamID, winnerTeamID
 
-| Team | Value |
-| :--- | :---: |
-| CSK  |   2   |
-| DC   |   3   |
-| PBKS |   4   |
-| KKR  |   5   |
-| MI   |   6   |
-| RR   |   7   |
-| RCB  |   8   |
-| SRH  |   9   |
-| GT   | 1976  |
-| LSG  | 1979  |
+| Team |  ID  |
+| :--- | :--: |
+| CSK  |  2   |
+| DC   |  3   |
+| PBKS |  4   |
+| KKR  |  5   |
+| MI   |  6   |
+| RR   |  7   |
+| RCB  |  8   |
+| SRH  |  9   |
+| GT   | 1976 |
+| LSG  | 1979 |
 
 ### startingAt
 
@@ -68,7 +68,7 @@ The goal was to make the data easier to use for the zkApp.
     | NS                                            |        0        |
     | 1st Innings, 2nd Innings, Innings Break, Int. |        1        |
     | Finished                                      |        2        |
-    | Anything else                                 |       -1        |
+    | All other status                              |       -1        |
 
 ## Installation
 
