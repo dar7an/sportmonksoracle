@@ -80,6 +80,10 @@ async function fetchFixtureStatus(
 
 // Function to sign fixture data and add timestamp
 function signFixtureData(fixtureStatus: FixtureStatus) {
+    if (!PRIVATE_KEY) {
+        throw new Error("Missing required environment variable: PRIVATE_KEY");
+    }
+
     const signature = client.signFields(
         [
             BigInt(fixtureStatus.fixtureID),
@@ -87,7 +91,7 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
             BigInt(fixtureStatus.winnerTeamID),
             BigInt(dayjs(new Date()).valueOf()),
         ],
-        PRIVATE_KEY || ""
+        PRIVATE_KEY
     );
 
     return {

@@ -66,6 +66,10 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
 
 // Function to sign fixture data
 function signFixtureData(fixture: ProcessedFixtureData) {
+    if (!PRIVATE_KEY) {
+        throw new Error("Missing required environment variable: PRIVATE_KEY");
+    }
+
     const signature = client.signFields(
         [
             BigInt(fixture.id),
@@ -74,7 +78,7 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             BigInt(fixture.starting_at),
             BigInt(dayjs(new Date()).valueOf()),
         ],
-        PRIVATE_KEY || ""
+        PRIVATE_KEY
     );
 
     return {
