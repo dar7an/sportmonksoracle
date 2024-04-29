@@ -56,7 +56,7 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
             id: firstFixture.id,
             localteam_id: firstFixture.localteam_id,
             visitorteam_id: firstFixture.visitorteam_id,
-            starting_at: dayjs(firstFixture.starting_at).unix(),
+            starting_at: dayjs(firstFixture.starting_at).valueOf(),
         };
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -77,7 +77,7 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             localTeamID: fixture.localteam_id,
             visitorTeamID: fixture.visitorteam_id,
             startingAt: fixture.starting_at,
-            timestamp: dayjs(new Date()).unix(),
+            timestamp: dayjs(new Date()).valueOf(),
         },
         signature: signature.signature,
         publicKey: signature.publicKey,

@@ -88,7 +88,7 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
     return {
         data: {
             ...fixtureStatus, // Include all properties from fixtureStatus
-            timestamp: dayjs(new Date()).unix(),
+            timestamp: dayjs(new Date()).valueOf(),
         },
         signature: signature.signature,
         publicKey: signature.publicKey,
