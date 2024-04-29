@@ -80,9 +80,14 @@ async function fetchFixtureStatus(
 
 // Function to sign fixture data and add timestamp
 function signFixtureData(fixtureStatus: FixtureStatus) {
-    const signature = client.signMessage(
-        JSON.stringify(fixtureStatus),
-        String(PRIVATE_KEY)
+    const signature = client.signFields(
+        [
+            BigInt(fixtureStatus.fixtureID),
+            BigInt(fixtureStatus.status),
+            BigInt(fixtureStatus.winnerTeamID),
+            BigInt(dayjs(new Date()).valueOf()),
+        ],
+        PRIVATE_KEY || ""
     );
 
     return {

@@ -66,9 +66,15 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
 
 // Function to sign fixture data
 function signFixtureData(fixture: ProcessedFixtureData) {
-    const signature = client.signMessage(
-        JSON.stringify(fixture),
-        String(PRIVATE_KEY)
+    const signature = client.signFields(
+        [
+            BigInt(fixture.id),
+            BigInt(fixture.localteam_id),
+            BigInt(fixture.visitorteam_id),
+            BigInt(fixture.starting_at),
+            BigInt(dayjs(new Date()).valueOf()),
+        ],
+        PRIVATE_KEY || ""
     );
 
     return {
