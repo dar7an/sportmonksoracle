@@ -76,7 +76,6 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             BigInt(fixture.localteam_id),
             BigInt(fixture.visitorteam_id),
             BigInt(fixture.starting_at),
-            BigInt(dayjs(new Date()).valueOf()),
         ],
         PRIVATE_KEY
     );
