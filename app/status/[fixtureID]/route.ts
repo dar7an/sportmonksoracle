@@ -49,20 +49,25 @@ async function fetchFixtureStatus(
         let status: number;
         switch (sportsmonksFixtureStatus.status) {
             case "NS":
-                status = 0;
+                status = 1; // Not Started
                 break;
             case "1st Innings":
             case "Innings Break":
             case "2nd Innings":
             case "Int.":
-                status = 1;
+                status = 2; // In Progress
                 break;
             case "Finished":
-                status = 2;
+                status = 3; // Finished
                 break;
             default:
-                status = -1;
+                status = 4; // Cancelled
                 break;
+        }
+
+        // Ensure winner_team_id is not null
+        if (sportsmonksFixtureStatus.winner_team_id === null) {
+            sportsmonksFixtureStatus.winner_team_id = 0;
         }
 
         const fixtureStatus: FixtureStatus = {

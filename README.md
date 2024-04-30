@@ -143,10 +143,14 @@ The goal was to make the data easier to use for the zkApp.
 
     | Sportsmonks Output                            | zkOracle Output |
     | :-------------------------------------------- | :-------------: |
-    | NS                                            |        0        |
-    | 1st Innings, 2nd Innings, Innings Break, Int. |        1        |
-    | Finished                                      |        2        |
-    | All other status                              |       -1        |
+    | NS                                            |        1        |
+    | 1st Innings, 2nd Innings, Innings Break, Int. |        2        |
+    | Finished                                      |        3        |
+    | All other status                              |        4        |
+
+-   #### winnerTeamID
+
+    Returns 0 for null. This is usually when the fixture is ongoing.
 
 ## Installation
 
