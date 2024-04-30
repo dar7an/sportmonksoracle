@@ -94,7 +94,6 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
             BigInt(fixtureStatus.fixtureID),
             BigInt(fixtureStatus.status),
             BigInt(fixtureStatus.winnerTeamID),
-            BigInt(dayjs(new Date()).valueOf()),
         ],
         PRIVATE_KEY
     );
