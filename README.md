@@ -191,7 +191,6 @@ API_KEY =           // SPORTSMONKS API KEY
 PRIVATE_KEY =       // ORACLE PRIVATE KEY
 LEAGUE_ID = 1       // IPL
 SEASON_ID = 1484    // 2024
-FIXTURE_ID =        // FIXTURE_ID FOR STATUS
 ```
 
 ### Build and Run the Application
