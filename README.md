@@ -2,6 +2,8 @@
 
 This application is a zero knowledge oracle ([`zkOracle`](https://minaprotocol.com/blog/what-are-zkoracles)) for Sportsmonks' Cricket API version 2.0. It securely transports off-chain cricket data on-chain, enabling its use in zero-knowledge applications ([`zkApps`](https://minaprotocol.com/zkapps)) on the Mina Protocol.
 
+Shoutout to Sportsmonks for providing me free access to their API for the duration of this project ❤️
+
 ## Example
 
 A deployed Vercel domain can be accessed through [`https://sportmonksoracle.vercel.app`](https://sportmonksoracle.vercel.app)
