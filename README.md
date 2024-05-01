@@ -193,6 +193,10 @@ Run the following command to install or update all the requred modules listed in
 npm install
 ```
 
+```bash
+npm audit fix
+```
+
 ### Run a Local Server
 
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
