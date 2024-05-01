@@ -169,7 +169,7 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh
 
 ```bash
 nvm install 22
-nvm use node
+nvm use 22
 ```
 4. Confirm version 22 of Node.js was installed with following command
 ```bash
