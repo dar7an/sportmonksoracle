@@ -42,8 +42,21 @@ async function fetchFixtureStatus(
             throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
+        // Ensure data is present
         const data = (await response.json()) as any;
+        if (!data.data) {
+            console.error("Error fetching data: No fixtures found");
+            return null;
+        }
+    
+        // Ensure data is in the expected format
         const sportsmonksFixtureStatus: SportmonksFixtureStatus = data.data;
+        if (!sportsmonksFixtureStatus || typeof sportsmonksFixtureStatus.id !== 'number' 
+        || typeof sportsmonksFixtureStatus.status !== 'string' 
+        || typeof sportsmonksFixtureStatus.winner_team_id !== 'number') {
+            console.error("Error fetching data: Invalid fixture data");
+            return null;
+        }
 
         // Convert status string to numerical representation
         let status: number;
@@ -85,27 +98,32 @@ async function fetchFixtureStatus(
 
 // Function to sign fixture data and add timestamp
 function signFixtureData(fixtureStatus: FixtureStatus) {
-    if (!PRIVATE_KEY) {
-        throw new Error("Missing required environment variable: PRIVATE_KEY");
+    try {
+        if (!PRIVATE_KEY) {
+            throw new Error("Missing required environment variable: PRIVATE_KEY");
+        }
+
+        const signature = client.signFields(
+            [
+                BigInt(fixtureStatus.fixtureID),
+                BigInt(fixtureStatus.status),
+                BigInt(fixtureStatus.winnerTeamID),
+            ],
+            PRIVATE_KEY
+        );
+
+        return {
+            data: {
+                ...fixtureStatus, // Include all properties from fixtureStatus
+                timestamp: dayjs(new Date()).valueOf(),
+            },
+            signature: signature.signature,
+            publicKey: signature.publicKey,
+        };
+    } catch (error) {
+        console.error("Error signing data:", error);
+        return null;
     }
-
-    const signature = client.signFields(
-        [
-            BigInt(fixtureStatus.fixtureID),
-            BigInt(fixtureStatus.status),
-            BigInt(fixtureStatus.winnerTeamID),
-        ],
-        PRIVATE_KEY
-    );
-
-    return {
-        data: {
-            ...fixtureStatus, // Include all properties from fixtureStatus
-            timestamp: dayjs(new Date()).valueOf(),
-        },
-        signature: signature.signature,
-        publicKey: signature.publicKey,
-    };
 }
 
 // GET endpoint handler with error handling and response formatting
