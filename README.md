@@ -161,8 +161,9 @@ The goal was to make the data easier to use for the zkApp.
 1. First, we need to install Node Version Manager (nvm). This tool allows us to manage multiple versions of Node.js. Run the following command in your terminal:
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh 
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh
 ```
+
 2. Close your terminal and open a new one to ensure nvm is fully installed
 
 3. Run the following command:
@@ -171,10 +172,13 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh
 nvm install 22
 nvm use 22
 ```
+
 4. Confirm version 22 of Node.js was installed with following command
+
 ```bash
 node -v
 ```
+
 ### Clone the Repsitory
 
 ```bash
