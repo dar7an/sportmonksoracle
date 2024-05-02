@@ -20,14 +20,14 @@ interface SportmonksFixtureStatus {
 }
 
 // Interface for processed fixture status data
-interface FixtureStatus {
+export interface FixtureStatus {
     fixtureID: number;
     status: number;
     winnerTeamID: number;
 }
 
 // Function to fetch fixture status with error handling and type conversion
-async function fetchFixtureStatus(
+export async function fetchFixtureStatus(
     fixtureID: number
 ): Promise<FixtureStatus | null> {
     try {
@@ -97,7 +97,7 @@ async function fetchFixtureStatus(
 }
 
 // Function to sign fixture data and add timestamp
-function signFixtureData(fixtureStatus: FixtureStatus) {
+export function signFixtureData(fixtureStatus: FixtureStatus) {
     try {
         if (!PRIVATE_KEY) {
             throw new Error("Missing required environment variable: PRIVATE_KEY");
