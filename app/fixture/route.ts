@@ -50,7 +50,22 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
         }
 
         const data = (await response.json()) as { data: NextFixtureData[] };
+        if (!data.data.length) {
+            console.error("Error fetching data: No fixtures found");
+            return null;
+        }
+
         const firstFixture = data.data[0];
+
+        // Validate fixture data
+        if (!firstFixture || typeof firstFixture.id !== 'number' ||
+            typeof firstFixture.localteam_id !== 'number' ||
+            typeof firstFixture.visitorteam_id !== 'number' ||
+            typeof firstFixture.starting_at !== 'string'
+        ) {
+            console.error("Error fetching data: Invalid fixture data");
+            return null;
+        }
 
         return {
             id: firstFixture.id,
@@ -66,31 +81,36 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
 
 // Function to sign fixture data
 function signFixtureData(fixture: ProcessedFixtureData) {
-    if (!PRIVATE_KEY) {
-        throw new Error("Missing required environment variable: PRIVATE_KEY");
+    try {
+        if (!PRIVATE_KEY) {
+            throw new Error("Missing required environment variable: PRIVATE_KEY");
+        }
+
+        const signature = client.signFields(
+            [
+                BigInt(fixture.id),
+                BigInt(fixture.localteam_id),
+                BigInt(fixture.visitorteam_id),
+                BigInt(fixture.starting_at),
+            ],
+            PRIVATE_KEY
+        );
+
+        return {
+            data: {
+                fixtureID: fixture.id,
+                localTeamID: fixture.localteam_id,
+                visitorTeamID: fixture.visitorteam_id,
+                startingAt: fixture.starting_at,
+                timestamp: dayjs(new Date()).valueOf(),
+            },
+            signature: signature.signature,
+            publicKey: signature.publicKey,
+        };
+    } catch (error) {
+        console.error("Error signing fixture data:", error);
+        return null; // Indicate error by returning null
     }
-
-    const signature = client.signFields(
-        [
-            BigInt(fixture.id),
-            BigInt(fixture.localteam_id),
-            BigInt(fixture.visitorteam_id),
-            BigInt(fixture.starting_at),
-        ],
-        PRIVATE_KEY
-    );
-
-    return {
-        data: {
-            fixtureID: fixture.id,
-            localTeamID: fixture.localteam_id,
-            visitorTeamID: fixture.visitorteam_id,
-            startingAt: fixture.starting_at,
-            timestamp: dayjs(new Date()).valueOf(),
-        },
-        signature: signature.signature,
-        publicKey: signature.publicKey,
-    };
 }
 
 // Main function (async to handle asynchronous operations)
