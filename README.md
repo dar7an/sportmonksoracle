@@ -156,10 +156,25 @@ The goal was to make the data easier to use for the zkApp.
 
 ## Installation
 
-### Install Node.js
+### Installing Node.js
 
-There are multiple ways to install Node.js. The easiest way is to use a [`package manager`](https://nodejs.org/download/package-manager/) for your operating system. This application was built and tested with v22.
+1. First, we need to install Node Version Manager (nvm). This tool allows us to manage multiple versions of Node.js. Run the following command in your terminal:
 
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh 
+```
+2. Close your terminal and open a new one to ensure nvm is fully installed
+
+3. Run the following command:
+
+```bash
+nvm install 22
+nvm use 22
+```
+4. Confirm version 22 of Node.js was installed with following command
+```bash
+node -v
+```
 ### Clone the Repsitory
 
 ```bash
@@ -176,6 +191,10 @@ Run the following command to install or update all the requred modules listed in
 
 ```bash
 npm install
+```
+
+```bash
+npm audit fix
 ```
 
 ### Run a Local Server
