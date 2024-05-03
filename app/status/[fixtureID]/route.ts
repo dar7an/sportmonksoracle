@@ -42,21 +42,16 @@ async function fetchFixtureStatus(
             throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
-        // Ensure data is present
-        const data = (await response.json()) as any;
+        // Parse response data and check for errors
+        const data = (await response.json()) as {
+            data: SportmonksFixtureStatus;
+        };
         if (!data.data) {
             console.error("Error fetching data: No fixtures found");
             return null;
         }
-    
-        // Ensure data is in the expected format
+
         const sportsmonksFixtureStatus: SportmonksFixtureStatus = data.data;
-        if (!sportsmonksFixtureStatus || typeof sportsmonksFixtureStatus.id !== 'number' 
-        || typeof sportsmonksFixtureStatus.status !== 'string' 
-        || typeof sportsmonksFixtureStatus.winner_team_id !== 'number') {
-            console.error("Error fetching data: Invalid fixture data");
-            return null;
-        }
 
         // Convert status string to numerical representation
         let status: number;
@@ -100,7 +95,9 @@ async function fetchFixtureStatus(
 function signFixtureData(fixtureStatus: FixtureStatus) {
     try {
         if (!PRIVATE_KEY) {
-            throw new Error("Missing required environment variable: PRIVATE_KEY");
+            throw new Error(
+                "Missing required environment variable: PRIVATE_KEY"
+            );
         }
 
         const signature = client.signFields(

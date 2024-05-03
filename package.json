@@ -1,6 +1,6 @@
 {
     "name": "nextjs",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -8,6 +8,7 @@
         "start": "next start"
     },
     "dependencies": {
+        "@mapbox/node-pre-gyp": "^1.0.11",
         "dayjs": "^1.11.11",
         "dotenv": "^16.4.5",
         "mina-signer": "^3.0.6",
@@ -19,10 +20,10 @@
         "@types/node": "^20.12.8",
         "@types/node-fetch": "^2.6.11",
         "@types/react": "^18.3.1",
-        "typescript": "^5.4.5",
-        "@vercel/fun": "1.1.1",
-        "tar": "^7.0.1",
+        "@vercel/fun": "^1.1.1",
         "semver": "^7.6.0",
+        "tar": "^7.0.1",
+        "typescript": "^5.4.5",
         "undici": "^5.28.4"
     }
 }

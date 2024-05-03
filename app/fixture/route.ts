@@ -49,23 +49,14 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
             return null; // Indicate error by returning null
         }
 
+        // Parse response data and check for errors
         const data = (await response.json()) as { data: NextFixtureData[] };
         if (!data.data.length) {
             console.error("Error fetching data: No fixtures found");
             return null;
         }
 
-        const firstFixture = data.data[0];
-
-        // Validate fixture data
-        if (!firstFixture || typeof firstFixture.id !== 'number' ||
-            typeof firstFixture.localteam_id !== 'number' ||
-            typeof firstFixture.visitorteam_id !== 'number' ||
-            typeof firstFixture.starting_at !== 'string'
-        ) {
-            console.error("Error fetching data: Invalid fixture data");
-            return null;
-        }
+        const firstFixture: NextFixtureData = data.data[0];
 
         return {
             id: firstFixture.id,
@@ -83,7 +74,9 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
 function signFixtureData(fixture: ProcessedFixtureData) {
     try {
         if (!PRIVATE_KEY) {
-            throw new Error("Missing required environment variable: PRIVATE_KEY");
+            throw new Error(
+                "Missing required environment variable: PRIVATE_KEY"
+            );
         }
 
         const signature = client.signFields(
