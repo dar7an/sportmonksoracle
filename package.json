@@ -14,7 +14,7 @@
         "mina-signer": "^3.0.6",
         "next": "^14.2.3",
         "node-fetch": "^3.3.2",
-        "o1js": "^1.1.0",
+        "o1js": "^1.9.1",
         "vercel": "^43.3.0"
     },
     "devDependencies": {

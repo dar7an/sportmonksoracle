@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+    experimental: {
+        serverComponentsExternalPackages: ['o1js']
+    }
+};
 
 export default nextConfig;
 

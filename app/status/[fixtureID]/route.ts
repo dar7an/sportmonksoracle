@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import dayjs from "dayjs";
 import { Status, signStatus } from "../../../src/oracleUtils";
+import { PrivateKey } from "o1js";
 
 // Ensure required environment variables are present
 const { PRIVATE_KEY, API_KEY } = process.env;
@@ -99,14 +100,15 @@ function signFixtureData(fixtureStatus: Status) {
         }
 
         const signature = signStatus(PRIVATE_KEY, fixtureStatus);
+        const publicKey = PrivateKey.fromBase58(PRIVATE_KEY).toPublicKey();
 
         return {
             data: {
                 ...fixtureStatus,
                 timestamp: dayjs(new Date()).valueOf(),
             },
-            signature: signature.signature,
-            publicKey: signature.publicKey,
+            signature: signature.toBase58(),
+            publicKey: publicKey.toBase58(),
         };
     } catch (error) {
         console.error("Error signing data:", error);
