@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     webpack(config, { isServer }) {
@@ -5,7 +8,7 @@ const nextConfig = {
 
         if (isServer) {
             config.output.publicPath = "/_next/";
-            const wasmPath = require.nodeRequire
+            const wasmPath = require
                 .resolve("o1js/dist/web/plonk_wasm_bg.wasm")
                 .replace(/\\/g, "/");
             config.plugins.push(
