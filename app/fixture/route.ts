@@ -136,9 +136,19 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             );
         }
 
-        const signature = signFixture(PRIVATE_KEY, fixture);
+        // 1. Create a clean object with only the fields to be signed.
+        const dataToSign: Fixture = {
+            fixtureID: fixture.fixtureID,
+            localTeamID: fixture.localTeamID,
+            visitorTeamID: fixture.visitorTeamID,
+            startingAt: fixture.startingAt,
+        };
+
+        // 2. Sign the clean object.
+        const signature = signFixture(PRIVATE_KEY, dataToSign);
         const publicKey = PrivateKey.fromBase58(PRIVATE_KEY).toPublicKey();
 
+        // 3. Return the full data object in the payload, but with the clean signature.
         return {
             data: {
                 ...fixture,
