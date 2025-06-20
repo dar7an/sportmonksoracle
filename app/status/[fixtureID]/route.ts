@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 import dayjs from "dayjs";
-import { PrivateKey } from "o1js";
-import { signStatus } from "@/src/oracleUtils";
+import { Status, signStatus } from "../../../src/oracleUtils";
 
 // Ensure required environment variables are present
 const { PRIVATE_KEY, API_KEY } = process.env;
@@ -21,20 +20,10 @@ interface SportmonksFixtureStatus {
     winner_team_id: number | null;
 }
 
-// Interface for processed fixture status data
-interface FixtureStatus {
-    fixtureID: number;
-    localTeamID: number;
-    visitorTeamID: number;
-    startingAt: number; // unix epoch in milliseconds
-    status: number;
-    winnerTeamID: number;
-}
-
 // Function to fetch fixture status with error handling and type conversion
 async function fetchFixtureStatus(
     fixtureID: number
-): Promise<FixtureStatus | null> {
+): Promise<Status | null> {
     try {
         const url = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=localteam_id,visitorteam_id,starting_at,status,winner_team_id&api_token=${API_KEY}`;
         const response = await fetch(url, {
@@ -79,17 +68,18 @@ async function fetchFixtureStatus(
         }
 
         // Ensure winner_team_id is not null
-        if (sportsmonksFixtureStatus.winner_team_id === null) {
-            sportsmonksFixtureStatus.winner_team_id = 0;
+        let winnerTeamID = sportsmonksFixtureStatus.winner_team_id;
+        if (winnerTeamID === null) {
+            winnerTeamID = 0;
         }
 
-        const fixtureStatus: FixtureStatus = {
+        const fixtureStatus: Status = {
             fixtureID: sportsmonksFixtureStatus.id,
             localTeamID: sportsmonksFixtureStatus.localteam_id,
             visitorTeamID: sportsmonksFixtureStatus.visitorteam_id,
             startingAt: dayjs(sportsmonksFixtureStatus.starting_at).valueOf(),
             status,
-            winnerTeamID: sportsmonksFixtureStatus.winner_team_id,
+            winnerTeamID,
         };
 
         return fixtureStatus;
@@ -100,7 +90,7 @@ async function fetchFixtureStatus(
 }
 
 // Function to sign fixture data and add timestamp
-function signFixtureData(fixtureStatus: FixtureStatus) {
+function signFixtureData(fixtureStatus: Status) {
     try {
         if (!PRIVATE_KEY) {
             throw new Error(
@@ -108,24 +98,15 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
             );
         }
 
-        const privateKey = PrivateKey.fromBase58(PRIVATE_KEY);
-
-        const signature = signStatus(privateKey, {
-            fixtureID: fixtureStatus.fixtureID,
-            localTeamID: fixtureStatus.localTeamID,
-            visitorTeamID: fixtureStatus.visitorTeamID,
-            startingAt: fixtureStatus.startingAt,
-            status: fixtureStatus.status,
-            winnerTeamID: fixtureStatus.winnerTeamID,
-        });
+        const signature = signStatus(PRIVATE_KEY, fixtureStatus);
 
         return {
             data: {
                 ...fixtureStatus,
                 timestamp: dayjs(new Date()).valueOf(),
             },
-            signature: signature.toBase58(),
-            publicKey: privateKey.toPublicKey().toBase58(),
+            signature: signature.signature,
+            publicKey: signature.publicKey,
         };
     } catch (error) {
         console.error("Error signing data:", error);

@@ -1,9 +1,9 @@
 import fetch from "node-fetch";
 import dayjs from "dayjs";
+import { Fixture, signFixture } from "../../src/oracleUtils";
 
-// no external signer – handled via o1js helpers
-import { PrivateKey } from "o1js";
-import { signFixture } from "@/src/oracleUtils";
+import Client from "mina-signer";
+const client = new Client({ network: "testnet" });
 
 // Ensure required environment variables are present
 const { PRIVATE_KEY, API_KEY } = process.env;
@@ -31,11 +31,7 @@ interface TeamData {
     code: string;
 }
 
-interface ProcessedFixtureData {
-    id: number;
-    localteam_id: number;
-    visitorteam_id: number;
-    starting_at: number;
+interface ProcessedFixtureData extends Fixture {
     localteam_name: string;
     localteam_code: string;
     visitorteam_name: string;
@@ -115,10 +111,10 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
         }
 
         return {
-            id: firstFixture.id,
-            localteam_id: firstFixture.localteam_id,
-            visitorteam_id: firstFixture.visitorteam_id,
-            starting_at: dayjs(firstFixture.starting_at).valueOf(),
+            fixtureID: firstFixture.id,
+            localTeamID: firstFixture.localteam_id,
+            visitorTeamID: firstFixture.visitorteam_id,
+            startingAt: dayjs(firstFixture.starting_at).valueOf(),
             localteam_name: localTeam.name,
             localteam_code: localTeam.code,
             visitorteam_name: visitorTeam.name,
@@ -139,29 +135,15 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             );
         }
 
-        const privateKey = PrivateKey.fromBase58(PRIVATE_KEY);
-
-        const signature = signFixture(privateKey, {
-            fixtureID: fixture.id,
-            localTeamID: fixture.localteam_id,
-            visitorTeamID: fixture.visitorteam_id,
-            startingAt: fixture.starting_at,
-        });
+        const signature = signFixture(PRIVATE_KEY, fixture);
 
         return {
             data: {
-                fixtureID: fixture.id,
-                localTeamID: fixture.localteam_id,
-                visitorTeamID: fixture.visitorteam_id,
-                startingAt: fixture.starting_at,
-                localTeamName: fixture.localteam_name,
-                localTeamCode: fixture.localteam_code,
-                visitorTeamName: fixture.visitorteam_name,
-                visitorTeamCode: fixture.visitorteam_code,
+                ...fixture,
                 timestamp: dayjs(new Date()).valueOf(),
             },
-            signature: signature.toBase58(),
-            publicKey: privateKey.toPublicKey().toBase58(),
+            signature: signature.signature,
+            publicKey: signature.publicKey,
         };
     } catch (error) {
         console.error("Error signing fixture data:", error);
