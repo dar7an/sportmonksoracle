@@ -1,6 +1,4 @@
-import Client from "mina-signer";
-
-const client = new Client({ network: "testnet" });
+import { PrivateKey, Signature, Field } from "o1js";
 
 export interface Fixture {
     fixtureID: number | bigint;
@@ -18,20 +16,20 @@ export interface Status extends Fixture {
 /*                               Field helpers                                */
 /* -------------------------------------------------------------------------- */
 
-export function fixtureToFields(fixture: Fixture): bigint[] {
+export function fixtureToFields(fixture: Fixture): Field[] {
     return [
-        BigInt(fixture.fixtureID),
-        BigInt(fixture.localTeamID),
-        BigInt(fixture.visitorTeamID),
-        BigInt(fixture.startingAt),
+        Field(fixture.fixtureID),
+        Field(fixture.localTeamID),
+        Field(fixture.visitorTeamID),
+        Field(fixture.startingAt),
     ];
 }
 
-export function statusToFields(status: Status): bigint[] {
+export function statusToFields(status: Status): Field[] {
     return [
         ...fixtureToFields(status),
-        BigInt(status.status),
-        BigInt(status.winnerTeamID),
+        Field(status.status),
+        Field(status.winnerTeamID),
     ];
 }
 
@@ -39,10 +37,14 @@ export function statusToFields(status: Status): bigint[] {
 /*                              Signer helpers                                */
 /* -------------------------------------------------------------------------- */
 
-export function signFixture(privateKey: string, fixture: Fixture) {
-    return client.signFields(fixtureToFields(fixture), privateKey);
+export function signFixture(privateKeyBase58: string, fixture: Fixture) {
+    const privateKey = PrivateKey.fromBase58(privateKeyBase58);
+    const fields = fixtureToFields(fixture);
+    return Signature.create(privateKey, fields);
 }
 
-export function signStatus(privateKey: string, status: Status) {
-    return client.signFields(statusToFields(status), privateKey);
+export function signStatus(privateKeyBase58: string, status: Status) {
+    const privateKey = PrivateKey.fromBase58(privateKeyBase58);
+    const fields = statusToFields(status);
+    return Signature.create(privateKey, fields);
 } 
