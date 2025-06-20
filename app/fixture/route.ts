@@ -14,8 +14,8 @@ if (!PRIVATE_KEY || !API_KEY) {
 
 const T20I_LEAGUE_ID = 3;
 
-// API URL
-const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures?filter[league_id]=${T20I_LEAGUE_ID}&filter[status]=NS&fields[fixtures]=id,localteam_id,visitorteam_id,starting_at&api_token=${API_KEY}`;
+// API URL - Add sorting by starting_at to get the earliest upcoming fixture
+const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures?filter[league_id]=${T20I_LEAGUE_ID}&filter[status]=NS&fields[fixtures]=id,localteam_id,visitorteam_id,starting_at&sort=starting_at&api_token=${API_KEY}`;
 
 // Interfaces for data types
 interface NextFixtureData {
@@ -98,7 +98,10 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
             return null;
         }
 
+        console.log("Fetched fixtures:", data.data.slice(0, 3)); // Log first 3 fixtures for debugging
+
         const firstFixture: NextFixtureData = data.data[0];
+        console.log("Selected fixture:", firstFixture);
 
         const [localTeam, visitorTeam] = await Promise.all([
             fetchTeamData(firstFixture.localteam_id),
