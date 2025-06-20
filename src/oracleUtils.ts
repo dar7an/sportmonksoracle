@@ -1,6 +1,4 @@
-import Client from "mina-signer";
-
-const client = new Client({ network: "testnet" });
+import { Field, PrivateKey, Signature as O1Signature } from "o1js";
 
 export interface Fixture {
     fixtureID: number | bigint;
@@ -39,10 +37,12 @@ export function statusToFields(status: Status): bigint[] {
 /*                              Signer helpers                                */
 /* -------------------------------------------------------------------------- */
 
-export function signFixture(privateKey: string, fixture: Fixture) {
-    return client.signFields(fixtureToFields(fixture), privateKey);
+export function signFixture(privateKey: PrivateKey, fixture: Fixture) {
+    const fields = fixtureToFields(fixture).map((n) => Field(n));
+    return O1Signature.create(privateKey, fields);
 }
 
-export function signStatus(privateKey: string, status: Status) {
-    return client.signFields(statusToFields(status), privateKey);
+export function signStatus(privateKey: PrivateKey, status: Status) {
+    const fields = statusToFields(status).map((n) => Field(n));
+    return O1Signature.create(privateKey, fields);
 } 

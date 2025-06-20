@@ -1,8 +1,9 @@
 import fetch from "node-fetch";
 import dayjs from "dayjs";
 
-import Client from "mina-signer";
-const client = new Client({ network: "testnet" });
+// no external signer – handled via o1js helpers
+import { PrivateKey } from "o1js";
+import { signFixture } from "@/src/oracleUtils";
 
 // Ensure required environment variables are present
 const { PRIVATE_KEY, API_KEY } = process.env;
@@ -138,15 +139,14 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             );
         }
 
-        const signature = client.signFields(
-            [
-                BigInt(fixture.id),
-                BigInt(fixture.localteam_id),
-                BigInt(fixture.visitorteam_id),
-                BigInt(fixture.starting_at),
-            ],
-            PRIVATE_KEY
-        );
+        const privateKey = PrivateKey.fromBase58(PRIVATE_KEY);
+
+        const signature = signFixture(privateKey, {
+            fixtureID: fixture.id,
+            localTeamID: fixture.localteam_id,
+            visitorTeamID: fixture.visitorteam_id,
+            startingAt: fixture.starting_at,
+        });
 
         return {
             data: {
@@ -160,8 +160,8 @@ function signFixtureData(fixture: ProcessedFixtureData) {
                 visitorTeamCode: fixture.visitorteam_code,
                 timestamp: dayjs(new Date()).valueOf(),
             },
-            signature: signature.signature,
-            publicKey: signature.publicKey,
+            signature: signature.toBase58(),
+            publicKey: privateKey.toPublicKey().toBase58(),
         };
     } catch (error) {
         console.error("Error signing fixture data:", error);
