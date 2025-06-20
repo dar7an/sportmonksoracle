@@ -2,236 +2,189 @@
 
 This application is a zero knowledge oracle ([`zkOracle`](https://minaprotocol.com/blog/what-are-zkoracles)) for Sportsmonks' Cricket API version 2.0. It securely transports off-chain cricket data on-chain, enabling its use in zero-knowledge applications ([`zkApps`](https://minaprotocol.com/zkapps)) on the Mina Protocol.
 
+**This oracle powers the [zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader) zkApp** - a proof-of-concept zero-knowledge application that allows users to place anonymous trades on T20I cricket matches.
+
 Shoutout to Sportsmonks for providing me free access to their API for the duration of this project ❤️
 
-## Example
+## Live Demo
 
-A deployed Vercel domain can be accessed through [`https://sportmonksoracle.vercel.app`](https://sportmonksoracle.vercel.app)
+🚀 **Oracle Endpoint**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)  
+🏏 **zkApp Frontend**: [zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader)
 
-### Endpoints
+## How It Works
 
-The application currently configured for IPL 2024 and offers the following endpoints:
+The oracle fetches live cricket data from Sportmonks API and signs it using `o1js` cryptographic primitives. The [zk-cricket-trader zkApp](https://github.com/dar7an/zk-cricket-trader) verifies these signatures on-chain to ensure data integrity before processing anonymous trades.
 
--   [`fixture`](https://sportmonksoracle.vercel.app/fixture): Gets the next scheduled fixture. This is the default homepage redirect.
-    -   fixtureID
-    -   localTeamID
-    -   visitorTeamID
-    -   startingAt
-    -   timestamp
--   [`status/<fixtureID>`](https://sportmonksoracle.vercel.app/status/58328) Gets the current status of a specific fixture
-    -   fixtureID
-    -   status
-    -   winnerTeamID
-    -   timestamp
+### Cryptographic Signing Scheme
 
-## Interpretation
+The oracle uses a **field-based signing approach** compatible with Mina's zkApp verification:
 
-The endpoints always provide the same output as Sportsmonks Cricket API version 2.0.
-
-### fixtureID
-
-The IPL 2024 IDs of a fixture
-
-| fixtureID | localTeam ID | visitorTeamID |
-| --------- | :----------: | :-----------: |
-| 58328     |      2       |       8       |
-| 58331     |      4       |       3       |
-| 58334     |      5       |       9       |
-| 58337     |      7       |     1979      |
-| 58340     |     1976     |       6       |
-| 58343     |      8       |       4       |
-| 58346     |      2       |     1976      |
-| 58349     |      9       |       6       |
-| 58352     |      7       |       3       |
-| 58355     |      8       |       5       |
-| 58358     |     1979     |       4       |
-| 58361     |     1976     |       9       |
-| 58364     |      3       |       2       |
-| 58367     |      6       |       7       |
-| 58370     |      8       |     1979      |
-| 58373     |      3       |       5       |
-| 58376     |     1976     |       4       |
-| 58379     |      9       |       2       |
-| 58382     |      7       |       8       |
-| 58385     |      6       |       3       |
-| 58388     |     1979     |     1976      |
-| 59126     |      2       |       5       |
-| 59129     |      4       |       9       |
-| 59132     |      7       |     1976      |
-| 59135     |      6       |       8       |
-| 59138     |     1979     |       3       |
-| 59141     |      4       |       7       |
-| 59144     |      5       |     1979      |
-| 59147     |      6       |       2       |
-| 59150     |      8       |       9       |
-| 59153     |     1976     |       3       |
-| 59156     |      5       |       7       |
-| 59159     |      4       |       6       |
-| 59162     |     1979     |       2       |
-| 59165     |      3       |       9       |
-| 59168     |      5       |       8       |
-| 59171     |      4       |     1976      |
-| 59174     |      7       |       6       |
-| 59177     |      2       |     1979      |
-| 59180     |      3       |     1976      |
-| 59183     |      9       |       8       |
-| 59186     |      5       |       4       |
-| 59189     |      3       |       6       |
-| 59192     |     1979     |       7       |
-| 59195     |     1976     |       8       |
-| 59198     |      2       |       9       |
-| 59201     |      5       |       3       |
-| 59204     |     1979     |       6       |
-| 59207     |      2       |       4       |
-| 59210     |      9       |       7       |
-| 59213     |      6       |       5       |
-| 59216     |      8       |     1976      |
-| 59219     |      4       |       2       |
-| 59222     |     1979     |       5       |
-| 59225     |      6       |       9       |
-| 59228     |      3       |       7       |
-| 59231     |      9       |     1979      |
-| 59234     |      4       |       8       |
-| 59237     |     1976     |       2       |
-| 59240     |      5       |       6       |
-| 59243     |      2       |       7       |
-| 59246     |      8       |       3       |
-| 59249     |     1976     |       5       |
-| 59252     |      3       |     1979      |
-| 59255     |      7       |       4       |
-| 59258     |      9       |     1976      |
-| 59261     |      6       |     1979      |
-| 59264     |      8       |       2       |
-| 59267     |      9       |       4       |
-| 59270     |      7       |       5       |
-| 59273     |     2732     |     2732      |
-| 59276     |     2732     |     2732      |
-| 59279     |     2732     |     2732      |
-| 59282     |     2732     |     2732      |
-
-### localTeamID, visitorTeamID, winnerTeamID
-
-| Team |  ID  |
-| :--- | :--: |
-| CSK  |  2   |
-| DC   |  3   |
-| PBKS |  4   |
-| KKR  |  5   |
-| MI   |  6   |
-| RR   |  7   |
-| RCB  |  8   |
-| SRH  |  9   |
-| GT   | 1976 |
-| LSG  | 1979 |
-| TBC  | 2732 |
-
-### startingAt
-
-Start time of the fixture
-
-### Timestamp
-
-zkOracle's last update for the information provided
-
-### Exceptions
-
-The goal was to make the data easier to use for the zkApp.
-
--   #### startingAt
-
-    Converted from ISO 8601 to UNIX Timestamp in seconds
-
--   #### [`status`](https://docs.sportmonks.com/cricket/statuses-and-definitions)
-
-    | Sportsmonks Output                            | zkOracle Output |
-    | :-------------------------------------------- | :-------------: |
-    | NS                                            |        1        |
-    | 1st Innings, 2nd Innings, Innings Break, Int. |        2        |
-    | Finished                                      |        3        |
-    | All other status                              |        4        |
-
--   #### winnerTeamID
-
-    Returns 0 for null. This is usually when the fixture is ongoing.
-
-## Installation
-
-### Installing Node.js
-
-1. First, we need to install Node Version Manager (nvm). This tool allows us to manage multiple versions of Node.js. Run the following command in your terminal:
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh
+**For fixture data** (4 fields):
+```javascript
+[fixtureID, localTeamID, visitorTeamID, startingAt]
 ```
 
-2. Close your terminal and open a new one to ensure nvm is fully installed
-
-3. Run the following command:
-
-```bash
-nvm install 22
-nvm use 22
+**For match status** (6 fields):
+```javascript
+[fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID]
 ```
 
-4. Confirm version 22 of Node.js was installed with following command
+Each signature is created using `o1js`'s `Signature.create()` method, ensuring perfect compatibility with the zkApp's on-chain verification.
 
-```bash
-node -v
+## API Endpoints
+
+### `/fixture`
+Gets the next scheduled T20I fixture. This is the default homepage redirect.
+
+**Response format:**
+```json
+{
+  "data": {
+    "fixtureID": 66230,
+    "localTeamID": 39,
+    "visitorTeamID": 37,
+    "startingAt": 1752154200000,
+    "localTeamName": "Sri Lanka",
+    "localTeamCode": "SL",
+    "visitorTeamName": "Bangladesh", 
+    "visitorTeamCode": "BGD",
+    "timestamp": 1750437493555
+  },
+  "signature": "7mXXHVevhu1rN22QNvmEmNULzfPjdk815wPd6564b1qwWnjKMtC3qNTxyEjXUDCmubxadin4eZmRYztoVXhnvz9FyXESfsyS",
+  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
+}
 ```
 
-### Clone the Repsitory
+### `/status/[fixtureID]`
+Gets the current status of a specific fixture.
 
-```bash
-git clone https://github.com/dar7an/sportmonksoracle.git
+**Example**: [/status/66230](https://sportmonksoracle.vercel.app/status/66230)
+
+**Response includes all fixture data plus:**
+- `status`: Match status (1=Not Started, 2=In Progress, 3=Finished, 4=Cancelled)
+- `winnerTeamID`: Winner team ID (0 if no winner yet)
+
+## Data Interpretation
+
+The oracle normalizes Sportmonks API data for easier zkApp consumption:
+
+### Team IDs
+| Team | ID   | | Team | ID   |
+|------|------| |------|------|
+| CSK  | 2    | | RCB  | 8    |
+| DC   | 3    | | SRH  | 9    |
+| PBKS | 4    | | GT   | 1976 |
+| KKR  | 5    | | LSG  | 1979 |
+| MI   | 6    | | TBC  | 2732 |
+| RR   | 7    | |      |      |
+
+### Status Codes
+| Sportsmonks Output | Oracle Output | Description |
+|-------------------|---------------|-------------|
+| NS | 1 | Not Started |
+| 1st Innings, 2nd Innings, Innings Break, Int. | 2 | In Progress |
+| Finished | 3 | Finished |
+| All other statuses | 4 | Cancelled |
+
+### Data Transformations
+- **startingAt**: Converted from ISO 8601 to UNIX timestamp (milliseconds)
+- **winnerTeamID**: Returns 0 for null (when match is ongoing)
+- **timestamp**: Oracle's last update time
+
+## Verification Example
+
+You can verify signatures off-chain using `o1js`:
+
+```javascript
+import { Signature, Field, PublicKey } from 'o1js';
+
+const response = await fetch('https://sportmonksoracle.vercel.app/fixture');
+const data = await response.json();
+
+const signature = Signature.fromBase58(data.signature);
+const publicKey = PublicKey.fromBase58(data.publicKey);
+
+const fieldsToVerify = [
+  Field(data.data.fixtureID),
+  Field(data.data.localTeamID),
+  Field(data.data.visitorTeamID),
+  Field(data.data.startingAt)
+];
+
+const isValid = signature.verify(publicKey, fieldsToVerify).toBoolean();
+console.log('Signature valid:', isValid); // Should be true
 ```
 
-```bash
-cd sportmonksoracle
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Sportmonks API │───▶│   zkOracle       │───▶│ zk-cricket-trader│
+│                 │    │  (this repo)     │    │     zkApp       │
+│ • Live cricket  │    │ • Fetch data     │    │ • Verify sigs   │
+│   data          │    │ • Sign with o1js │    │ • Anonymous     │
+│ • Match status  │    │ • Normalize      │    │   trading       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-### Install or Update Dependencies
+## Development
 
-Run the following command to install or update all the requred modules listed in package.json
+### Prerequisites
+- Node.js 22+
+- Sportmonks Cricket API key
+- Mina private key for oracle signing
 
-```bash
-npm install
-```
+### Setup
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/dar7an/sportmonksoracle.git
+   cd sportmonksoracle
+   ```
 
-```bash
-npm audit fix
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### Run a Local Server
+3. **Environment variables**
+   Create `.env`:
+   ```bash
+   API_KEY=your_sportmonks_api_key
+   PRIVATE_KEY=your_mina_private_key_base58
+   ```
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+4. **Run locally**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000)
 
-### Setting Up Enviornment Variables
+5. **Build for production**
+   ```bash
+   npm run build
+   ```
 
-Create a file `.env` with the following:
+### Deployment
+Deploy to [Vercel](https://vercel.com) with environment variables configured.
 
-```bash
-API_KEY =           // SPORTSMONKS API KEY
-PRIVATE_KEY =       // ORACLE PRIVATE KEY
-LEAGUE_ID = 1       // IPL
-SEASON_ID = 1484    // 2024
-```
+## Technical Details
 
-### Build and Run the Application
+### Signing Implementation
+- Uses `o1js` `Signature.create()` for cryptographic signing
+- Configured as external package in Next.js to avoid WASM bundling issues
+- Signs only the required numeric fields, excluding strings (team names, etc.)
 
-```bash
-npm run build
-```
+### Security
+- Private key stored securely in environment variables
+- All remaining npm audit vulnerabilities are in development dependencies only
+- Production runtime has no known security issues
 
-```bash
-npm run dev
-```
+## Related Projects
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **[zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader)** - The zkApp that consumes this oracle
+- **[Mina Protocol](https://minaprotocol.com)** - The zero-knowledge blockchain platform
+- **[o1js](https://docs.minaprotocol.com/zkapps/o1js)** - TypeScript framework for zkApps
 
-### Deploy on Vercel
+---
 
--   Deploy the Next.js app to [Vercel](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
-
--   Follow [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-
--   Add the enviornment variables to [Vercel](https://vercel.com/docs/projects/environment-variables)
+Built with ❤️ for the Mina ecosystem
