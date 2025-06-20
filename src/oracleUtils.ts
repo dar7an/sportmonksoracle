@@ -1,4 +1,6 @@
-import { PrivateKey, Signature, Field } from "o1js";
+import Client from "mina-signer";
+
+const client = new Client({ network: "testnet" });
 
 export interface Fixture {
     fixtureID: number | bigint;
@@ -16,20 +18,23 @@ export interface Status extends Fixture {
 /*                               Field helpers                                */
 /* -------------------------------------------------------------------------- */
 
-export function fixtureToFields(fixture: Fixture): Field[] {
+export function fixtureToFields(fixture: Fixture): bigint[] {
     return [
-        Field(fixture.fixtureID),
-        Field(fixture.localTeamID),
-        Field(fixture.visitorTeamID),
-        Field(fixture.startingAt),
+        BigInt(fixture.fixtureID),
+        BigInt(fixture.localTeamID),
+        BigInt(fixture.visitorTeamID),
+        BigInt(fixture.startingAt),
     ];
 }
 
-export function statusToFields(status: Status): Field[] {
+export function statusToFields(status: Status): bigint[] {
     return [
-        ...fixtureToFields(status),
-        Field(status.status),
-        Field(status.winnerTeamID),
+        BigInt(status.fixtureID),
+        BigInt(status.localTeamID),
+        BigInt(status.visitorTeamID),
+        BigInt(status.startingAt),
+        BigInt(status.status),
+        BigInt(status.winnerTeamID),
     ];
 }
 
@@ -38,13 +43,11 @@ export function statusToFields(status: Status): Field[] {
 /* -------------------------------------------------------------------------- */
 
 export function signFixture(privateKeyBase58: string, fixture: Fixture) {
-    const privateKey = PrivateKey.fromBase58(privateKeyBase58);
     const fields = fixtureToFields(fixture);
-    return Signature.create(privateKey, fields);
+    return client.signFields(fields, privateKeyBase58);
 }
 
 export function signStatus(privateKeyBase58: string, status: Status) {
-    const privateKey = PrivateKey.fromBase58(privateKeyBase58);
     const fields = statusToFields(status);
-    return Signature.create(privateKey, fields);
+    return client.signFields(fields, privateKeyBase58);
 } 

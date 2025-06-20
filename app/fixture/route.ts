@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 import dayjs from "dayjs";
 import { Fixture, signFixture } from "../../src/oracleUtils";
-import { PrivateKey } from "o1js";
 
 import Client from "mina-signer";
 const client = new Client({ network: "testnet" });
@@ -146,7 +145,6 @@ function signFixtureData(fixture: ProcessedFixtureData) {
 
         // 2. Sign the clean object.
         const signature = signFixture(PRIVATE_KEY, dataToSign);
-        const publicKey = PrivateKey.fromBase58(PRIVATE_KEY).toPublicKey();
 
         // 3. Return the full data object in the payload, but with the clean signature.
         return {
@@ -154,8 +152,8 @@ function signFixtureData(fixture: ProcessedFixtureData) {
                 ...fixture,
                 timestamp: dayjs(new Date()).valueOf(),
             },
-            signature: signature.toBase58(),
-            publicKey: publicKey.toBase58(),
+            signature: signature.signature,
+            publicKey: signature.publicKey,
         };
     } catch (error) {
         console.error("Error signing fixture data:", error);
