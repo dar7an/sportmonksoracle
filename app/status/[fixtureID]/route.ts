@@ -15,13 +15,19 @@ if (!PRIVATE_KEY || !API_KEY) {
 // Interface for fixture status data from Sportmonks API
 interface SportmonksFixtureStatus {
     id: number;
+    localteam_id: number;
+    visitorteam_id: number;
+    starting_at: string;
     status: string;
-    winner_team_id: number;
+    winner_team_id: number | null;
 }
 
 // Interface for processed fixture status data
 interface FixtureStatus {
     fixtureID: number;
+    localTeamID: number;
+    visitorTeamID: number;
+    startingAt: number; // unix epoch in milliseconds
     status: number;
     winnerTeamID: number;
 }
@@ -31,7 +37,7 @@ async function fetchFixtureStatus(
     fixtureID: number
 ): Promise<FixtureStatus | null> {
     try {
-        const url = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=status,winner_team_id&api_token=${API_KEY}`;
+        const url = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=localteam_id,visitorteam_id,starting_at,status,winner_team_id&api_token=${API_KEY}`;
         const response = await fetch(url, {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -80,6 +86,9 @@ async function fetchFixtureStatus(
 
         const fixtureStatus: FixtureStatus = {
             fixtureID: sportsmonksFixtureStatus.id,
+            localTeamID: sportsmonksFixtureStatus.localteam_id,
+            visitorTeamID: sportsmonksFixtureStatus.visitorteam_id,
+            startingAt: dayjs(sportsmonksFixtureStatus.starting_at).valueOf(),
             status,
             winnerTeamID: sportsmonksFixtureStatus.winner_team_id,
         };
@@ -103,6 +112,9 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
         const signature = client.signFields(
             [
                 BigInt(fixtureStatus.fixtureID),
+                BigInt(fixtureStatus.localTeamID),
+                BigInt(fixtureStatus.visitorTeamID),
+                BigInt(fixtureStatus.startingAt),
                 BigInt(fixtureStatus.status),
                 BigInt(fixtureStatus.winnerTeamID),
             ],
@@ -111,7 +123,7 @@ function signFixtureData(fixtureStatus: FixtureStatus) {
 
         return {
             data: {
-                ...fixtureStatus, // Include all properties from fixtureStatus
+                ...fixtureStatus,
                 timestamp: dayjs(new Date()).valueOf(),
             },
             signature: signature.signature,
