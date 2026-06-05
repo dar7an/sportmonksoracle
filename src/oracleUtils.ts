@@ -4,11 +4,14 @@ export interface Fixture {
     fixtureID: number | bigint;
     localTeamID: number | bigint;
     visitorTeamID: number | bigint;
-    startingAt: number | bigint; // unix timestamp in milliseconds
+    /** Unix timestamp in milliseconds. Must match the value verified by consumers. */
+    startingAt: number | bigint;
 }
 
 export interface Status extends Fixture {
+    /** Oracle status code. See src/status.ts for the Sportmonks mapping. */
     status: number | bigint;
+    /** Uses 0 while Sportmonks has no winner_team_id. */
     winnerTeamID: number | bigint;
 }
 
@@ -17,6 +20,7 @@ export interface Status extends Fixture {
 /* -------------------------------------------------------------------------- */
 
 export function fixtureToFields(fixture: Fixture): Field[] {
+    // This order is the public signing contract for fixture payloads.
     return [
         Field(fixture.fixtureID),
         Field(fixture.localTeamID),
@@ -26,6 +30,7 @@ export function fixtureToFields(fixture: Fixture): Field[] {
 }
 
 export function statusToFields(status: Status): Field[] {
+    // This order is the public signing contract for status payloads.
     return [
         Field(status.fixtureID),
         Field(status.localTeamID),

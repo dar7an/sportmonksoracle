@@ -1,23 +1,26 @@
-# zkOracle for Sportmonks Cricket API
+# Sportmonks Cricket Oracle
 
-This application is a zero knowledge oracle ([`zkOracle`](https://minaprotocol.com/blog/what-are-zkoracles)) for Sportsmonks' Cricket API version 2.0. It securely transports off-chain cricket data on-chain, enabling its use in zero-knowledge applications ([`zkApps`](https://minaprotocol.com/zkapps)) on the Mina Protocol.
+Sportmonks Cricket Oracle is a standalone, plug-and-play API for signed cricket
+data. It fetches fixture data from the Sportmonks Cricket API, normalizes it,
+and signs the numeric payload with `o1js`.
 
-**This oracle powers the [zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader) zkApp** - a proof-of-concept zero-knowledge application that allows users to place anonymous trades on T20I cricket matches.
-
-Shoutout to Sportsmonks for providing me free access to their API for the duration of this project ❤️
+Use it with any app that needs verifiable cricket data. It works well for Mina
+zkApps, backend services, bots, dashboards, games, and data tools.
 
 ## Live Demo
 
-🚀 **Oracle Endpoint**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)  
-🏏 **zkApp Frontend**: [zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader)
+**Oracle Endpoint**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)
 
 ## How It Works
 
-The oracle fetches live cricket data from Sportmonks API and signs it using `o1js` cryptographic primitives. The [zk-cricket-trader zkApp](https://github.com/dar7an/zk-cricket-trader) verifies these signatures on-chain to ensure data integrity before processing anonymous trades.
+The oracle fetches cricket data from Sportmonks and signs it using `o1js`
+cryptographic primitives. Client apps can verify the signature before trusting
+or storing the response.
 
 ### Cryptographic Signing Scheme
 
-The oracle uses a **field-based signing approach** compatible with Mina's zkApp verification:
+The oracle uses a field-based signing approach. Only stable numeric fields are
+signed, so consumers can ignore display fields such as team names and codes.
 
 **For fixture data** (4 fields):
 ```javascript
@@ -29,7 +32,33 @@ The oracle uses a **field-based signing approach** compatible with Mina's zkApp 
 [fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID]
 ```
 
-Each signature is created using `o1js`'s `Signature.create()` method, ensuring perfect compatibility with the zkApp's on-chain verification.
+Each signature is created with `o1js` `Signature.create()`.
+
+## Plug-and-Play Usage
+
+1. Deploy this API with your own Sportmonks API key and Mina private key.
+2. Call `/fixture` or `/status/[fixtureID]` from your app.
+3. Verify `signature` with `publicKey` and the documented field order.
+4. Use the returned data only after verification succeeds.
+
+The API response shape is stable by design. Changes to signed fields, field
+order, or status codes should be treated as breaking changes.
+
+### Quick Client Example
+
+```javascript
+const oracleBaseUrl = 'https://your-oracle.example.com';
+
+const fixtureResponse = await fetch(`${oracleBaseUrl}/fixture`);
+const fixturePayload = await fixtureResponse.json();
+
+if (!fixtureResponse.ok) {
+  throw new Error(fixturePayload.error ?? 'Oracle request failed');
+}
+
+console.log(fixturePayload.data.fixtureID);
+console.log(fixturePayload.signature);
+```
 
 ## API Endpoints
 
@@ -55,6 +84,25 @@ Gets the next scheduled T20I fixture. This is the default homepage redirect.
 }
 ```
 
+**Signed fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fixtureID` | number | Sportmonks fixture ID |
+| `localTeamID` | number | Sportmonks local team ID |
+| `visitorTeamID` | number | Sportmonks visitor team ID |
+| `startingAt` | number | Fixture start time as Unix milliseconds |
+
+**Unsigned display fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `localTeamName` | string | Local team display name |
+| `localTeamCode` | string | Local team code |
+| `visitorTeamName` | string | Visitor team display name |
+| `visitorTeamCode` | string | Visitor team code |
+| `timestamp` | number | Time the oracle built this response |
+
 ### `/status/[fixtureID]`
 Gets the current status of a specific fixture.
 
@@ -64,9 +112,37 @@ Gets the current status of a specific fixture.
 - `status`: Match status (1=Not Started, 2=In Progress, 3=Finished, 4=Cancelled)
 - `winnerTeamID`: Winner team ID (0 if no winner yet)
 
+**Signed fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fixtureID` | number | Sportmonks fixture ID |
+| `localTeamID` | number | Sportmonks local team ID |
+| `visitorTeamID` | number | Sportmonks visitor team ID |
+| `startingAt` | number | Fixture start time as Unix milliseconds |
+| `status` | number | Normalized oracle status code |
+| `winnerTeamID` | number | Sportmonks winner team ID, or 0 when unknown |
+
+### Error Response
+
+Errors use JSON:
+
+```json
+{
+  "error": "fixtureID must be a positive integer"
+}
+```
+
+Common status codes:
+
+| Code | Meaning |
+|------|---------|
+| 400 | The request is invalid, such as a bad fixture ID |
+| 500 | The oracle is missing config, Sportmonks failed, or signing failed |
+
 ## Data Interpretation
 
-The oracle normalizes Sportmonks API data for easier zkApp consumption:
+The oracle normalizes Sportmonks API data for easier consumption:
 
 ### Team IDs
 | Team | ID   | | Team | ID   |
@@ -79,7 +155,7 @@ The oracle normalizes Sportmonks API data for easier zkApp consumption:
 | RR   | 7    | |      |      |
 
 ### Status Codes
-| Sportsmonks Output | Oracle Output | Description |
+| Sportmonks Output | Oracle Output | Description |
 |-------------------|---------------|-------------|
 | NS | 1 | Not Started |
 | 1st Innings, 2nd Innings, Innings Break, Int. | 2 | In Progress |
@@ -90,6 +166,16 @@ The oracle normalizes Sportmonks API data for easier zkApp consumption:
 - **startingAt**: Converted from ISO 8601 to UNIX timestamp (milliseconds)
 - **winnerTeamID**: Returns 0 for null (when match is ongoing)
 - **timestamp**: Oracle's last update time
+
+## Public Signing Contract
+
+The signed payload is intentionally smaller than the full JSON response. This
+keeps the contract stable and easy to verify.
+
+Do not include team names, team codes, or `timestamp` in verification. They are
+included for display and debugging, but they are not signed.
+
+If you change any signed field, add a test and document the change as breaking.
 
 ## Verification Example
 
@@ -115,15 +201,17 @@ const isValid = signature.verify(publicKey, fieldsToVerify).toBoolean();
 console.log('Signature valid:', isValid); // Should be true
 ```
 
+The same signed fields can also be verified inside Mina zkApps.
+
 ## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Sportmonks API │───▶│   zkOracle       │───▶│ zk-cricket-trader│
-│                 │    │  (this repo)     │    │     zkApp       │
-│ • Live cricket  │    │ • Fetch data     │    │ • Verify sigs   │
-│   data          │    │ • Sign with o1js │    │ • Anonymous     │
-│ • Match status  │    │ • Normalize      │    │   trading       │
+│  Sportmonks API │───▶│ Cricket Oracle   │───▶│ Consumer App    │
+│                 │    │  (this repo)     │    │                 │
+│ • Fixture data  │    │ • Fetch data     │    │ • Verify sigs   │
+│ • Match status  │    │ • Normalize      │    │ • Use payload   │
+│                 │    │ • Sign with o1js │    │                 │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
@@ -147,7 +235,12 @@ console.log('Signature valid:', isValid); // Should be true
    ```
 
 3. **Environment variables**
-   Create `.env`:
+   Create `.env` from the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then set:
    ```bash
    API_KEY=your_sportmonks_api_key
    PRIVATE_KEY=your_mina_private_key_base58
@@ -164,8 +257,44 @@ console.log('Signature valid:', isValid); // Should be true
    npm run build
    ```
 
+### Generate a Mina Private Key
+
+This project expects `PRIVATE_KEY` to be a Mina private key in base58 format.
+One simple way to create a key is with `o1js`:
+
+```bash
+node --input-type=module -e "import { PrivateKey } from 'o1js'; const key = PrivateKey.random(); console.log('PRIVATE_KEY=' + key.toBase58()); console.log('PUBLIC_KEY=' + key.toPublicKey().toBase58());"
+```
+
+Keep the private key secret. Share only the public key if a client wants to pin
+the oracle signer.
+
+### Quality checks
+Run these before opening a pull request:
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+The tests protect the signed field order and Sportmonks status mapping. These
+are part of the public contract with every consumer app.
+
+### Error handling
+If `API_KEY` or `PRIVATE_KEY` is missing, API routes return a JSON error instead
+of exiting the server process. This keeps local builds and deployment checks
+stable while still failing requests that cannot be signed.
+
 ### Deployment
 Deploy to [Vercel](https://vercel.com) with environment variables configured.
+
+Required deployment variables:
+
+| Name | Required | Description |
+|------|----------|-------------|
+| `API_KEY` | yes | Sportmonks Cricket API key |
+| `PRIVATE_KEY` | yes | Mina private key used for signing |
 
 ## Technical Details
 
@@ -176,15 +305,22 @@ Deploy to [Vercel](https://vercel.com) with environment variables configured.
 
 ### Security
 - Private key stored securely in environment variables
-- All remaining npm audit vulnerabilities are in development dependencies only
-- Production runtime has no known security issues
+- `.env.example` documents required config without exposing real secrets
+- `npm audit` currently reports a moderate PostCSS advisory through Next.js
+- The vulnerable PostCSS path is not used by this API-only oracle, but it should
+  be rechecked when Next.js publishes a patched dependency chain
+
+See [SECURITY.md](./SECURITY.md) for the vulnerability report flow.
 
 ## Related Projects
 
-- **[zk-cricket-trader](https://github.com/dar7an/zk-cricket-trader)** - The zkApp that consumes this oracle
 - **[Mina Protocol](https://minaprotocol.com)** - The zero-knowledge blockchain platform
 - **[o1js](https://docs.minaprotocol.com/zkapps/o1js)** - TypeScript framework for zkApps
 
+## License
+
+MIT. See [LICENSE](./LICENSE).
+
 ---
 
-Built with ❤️ for the Mina ecosystem
+Built for verifiable cricket data.

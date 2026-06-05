@@ -1,22 +1,11 @@
-import fetch from "node-fetch";
 import dayjs from "dayjs";
 import { Fixture, signFixture } from "../../src/oracleUtils";
 import { PrivateKey } from "o1js";
-
-// Ensure required environment variables are present
-const { PRIVATE_KEY, API_KEY } = process.env;
-
-if (!PRIVATE_KEY || !API_KEY) {
-    console.error("Missing required environment variables.");
-    process.exit(1);
-}
+import { getOracleEnv } from "../../src/config";
 
 const T20I_LEAGUE_ID = 3;
 
-// API URL - Add sorting by starting_at to get the earliest upcoming fixture
-const URL = `https://cricket.sportmonks.com/api/v2.0/fixtures?filter[league_id]=${T20I_LEAGUE_ID}&filter[status]=NS&fields[fixtures]=id,localteam_id,visitorteam_id,starting_at&sort=starting_at&api_token=${API_KEY}`;
-
-// Interfaces for data types
+// Sportmonks fixture fields requested by this route.
 interface NextFixtureData {
     id: number;
     localteam_id: number;
@@ -30,16 +19,15 @@ interface TeamData {
 }
 
 interface ProcessedFixtureData extends Fixture {
-    localteam_name: string;
-    localteam_code: string;
-    visitorteam_name: string;
-    visitorteam_code: string;
+    localTeamName: string;
+    localTeamCode: string;
+    visitorTeamName: string;
+    visitorTeamCode: string;
 }
 
-// Function to fetch team data
-async function fetchTeamData(teamId: number): Promise<TeamData | null> {
+async function fetchTeamData(teamId: number, apiKey: string): Promise<TeamData | null> {
     try {
-        const teamUrl = `https://cricket.sportmonks.com/api/v2.0/teams/${teamId}?api_token=${API_KEY}`;
+        const teamUrl = `https://cricket.sportmonks.com/api/v2.0/teams/${teamId}?api_token=${apiKey}`;
         const response = await fetch(teamUrl, {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -67,10 +55,10 @@ async function fetchTeamData(teamId: number): Promise<TeamData | null> {
     }
 }
 
-// Function to fetch fixture data with error handling and type assertion
-async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
+async function fetchNextFixtureData(apiKey: string): Promise<ProcessedFixtureData | null> {
     try {
-        const response = await fetch(URL, {
+        const url = `https://cricket.sportmonks.com/api/v2.0/fixtures?filter[league_id]=${T20I_LEAGUE_ID}&filter[status]=NS&fields[fixtures]=id,localteam_id,visitorteam_id,starting_at&sort=starting_at&api_token=${apiKey}`;
+        const response = await fetch(url, {
             method: "GET",
             headers: {
                 Accept: "application/json",
@@ -83,24 +71,23 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
                 response.status,
                 response.statusText
             );
-            return null; // Indicate error by returning null
+            return null;
         }
 
-        // Parse response data and check for errors
         const data = (await response.json()) as { data: NextFixtureData[] };
         if (!data.data.length) {
             console.error("Error fetching data: No fixtures found");
             return null;
         }
 
-        console.log("Fetched fixtures:", data.data.slice(0, 3)); // Log first 3 fixtures for debugging
+        console.log("Fetched fixtures:", data.data.slice(0, 3));
 
         const firstFixture: NextFixtureData = data.data[0];
         console.log("Selected fixture:", firstFixture);
 
         const [localTeam, visitorTeam] = await Promise.all([
-            fetchTeamData(firstFixture.localteam_id),
-            fetchTeamData(firstFixture.visitorteam_id),
+            fetchTeamData(firstFixture.localteam_id, apiKey),
+            fetchTeamData(firstFixture.visitorteam_id, apiKey),
         ]);
 
         if (!localTeam || !visitorTeam) {
@@ -113,27 +100,20 @@ async function fetchNextFixtureData(): Promise<ProcessedFixtureData | null> {
             localTeamID: firstFixture.localteam_id,
             visitorTeamID: firstFixture.visitorteam_id,
             startingAt: dayjs(firstFixture.starting_at).valueOf(),
-            localteam_name: localTeam.name,
-            localteam_code: localTeam.code,
-            visitorteam_name: visitorTeam.name,
-            visitorteam_code: visitorTeam.code,
+            localTeamName: localTeam.name,
+            localTeamCode: localTeam.code,
+            visitorTeamName: visitorTeam.name,
+            visitorTeamCode: visitorTeam.code,
         };
     } catch (error) {
         console.error("Error fetching data:", error);
-        return null; // Indicate error by returning null
+        return null;
     }
 }
 
-// Function to sign fixture data
-function signFixtureData(fixture: ProcessedFixtureData) {
+function signFixtureData(fixture: ProcessedFixtureData, privateKeyBase58: string) {
     try {
-        if (!PRIVATE_KEY) {
-            throw new Error(
-                "Missing required environment variable: PRIVATE_KEY"
-            );
-        }
-
-        // 1. Create a clean object with only the fields to be signed.
+        // Sign only the public numeric contract. Display fields remain unsigned.
         const dataToSign: Fixture = {
             fixtureID: fixture.fixtureID,
             localTeamID: fixture.localTeamID,
@@ -141,11 +121,9 @@ function signFixtureData(fixture: ProcessedFixtureData) {
             startingAt: fixture.startingAt,
         };
 
-        // 2. Sign the clean object using o1js.
-        const signature = signFixture(PRIVATE_KEY, dataToSign);
-        const publicKey = PrivateKey.fromBase58(PRIVATE_KEY).toPublicKey();
+        const signature = signFixture(privateKeyBase58, dataToSign);
+        const publicKey = PrivateKey.fromBase58(privateKeyBase58).toPublicKey();
 
-        // 3. Return the full data object in the payload, but with the clean signature.
         return {
             data: {
                 ...fixture,
@@ -156,23 +134,27 @@ function signFixtureData(fixture: ProcessedFixtureData) {
         };
     } catch (error) {
         console.error("Error signing fixture data:", error);
-        return null; // Indicate error by returning null
+        return null;
     }
 }
 
-// Main function (async to handle asynchronous operations)
 export async function GET() {
-    const fixtureData = await fetchNextFixtureData();
+    let env;
+    try {
+        env = getOracleEnv();
+    } catch (error) {
+        return Response.json({ error: (error as Error).message }, { status: 500 });
+    }
+
+    const fixtureData = await fetchNextFixtureData(env.apiKey);
 
     if (fixtureData) {
-        const signedData = signFixtureData(fixtureData);
-        return new Response(JSON.stringify(signedData), {
-            headers: { "Content-Type": "application/json" },
-        });
+        const signedData = signFixtureData(fixtureData, env.privateKey);
+        if (!signedData) {
+            return Response.json({ error: "Failed to sign fixture data" }, { status: 500 });
+        }
+        return Response.json(signedData);
     } else {
-        // Return a more informative error response
-        return new Response("Failed to fetch or process fixture data", {
-            status: 500,
-        });
+        return Response.json({ error: "Failed to fetch or process fixture data" }, { status: 500 });
     }
 }

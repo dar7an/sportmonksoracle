@@ -1,17 +1,10 @@
-import fetch from "node-fetch";
 import dayjs from "dayjs";
 import { Status, signStatus } from "../../../src/oracleUtils";
 import { PrivateKey } from "o1js";
+import { getOracleEnv } from "../../../src/config";
+import { mapSportmonksStatus } from "../../../src/status";
 
-// Ensure required environment variables are present
-const { PRIVATE_KEY, API_KEY } = process.env;
-
-if (!PRIVATE_KEY || !API_KEY) {
-    console.error("Missing required environment variables.");
-    process.exit(1);
-}
-
-// Interface for fixture status data from Sportmonks API
+// Sportmonks fixture fields requested by this route.
 interface SportmonksFixtureStatus {
     id: number;
     localteam_id: number;
@@ -21,12 +14,12 @@ interface SportmonksFixtureStatus {
     winner_team_id: number | null;
 }
 
-// Function to fetch fixture status with error handling and type conversion
 async function fetchFixtureStatus(
-    fixtureID: number
+    fixtureID: number,
+    apiKey: string
 ): Promise<Status | null> {
     try {
-        const url = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=localteam_id,visitorteam_id,starting_at,status,winner_team_id&api_token=${API_KEY}`;
+        const url = `https://cricket.sportmonks.com/api/v2.0/fixtures/${fixtureID}?fields[fixtures]=localteam_id,visitorteam_id,starting_at,status,winner_team_id&api_token=${apiKey}`;
         const response = await fetch(url, {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -37,7 +30,6 @@ async function fetchFixtureStatus(
             throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
-        // Parse response data and check for errors
         const data = (await response.json()) as {
             data: SportmonksFixtureStatus;
         };
@@ -48,27 +40,6 @@ async function fetchFixtureStatus(
 
         const sportsmonksFixtureStatus: SportmonksFixtureStatus = data.data;
 
-        // Convert status string to numerical representation
-        let status: number;
-        switch (sportsmonksFixtureStatus.status) {
-            case "NS":
-                status = 1; // Not Started
-                break;
-            case "1st Innings":
-            case "Innings Break":
-            case "2nd Innings":
-            case "Int.":
-                status = 2; // In Progress
-                break;
-            case "Finished":
-                status = 3; // Finished
-                break;
-            default:
-                status = 4; // Cancelled
-                break;
-        }
-
-        // Ensure winner_team_id is not null
         let winnerTeamID = sportsmonksFixtureStatus.winner_team_id;
         if (winnerTeamID === null) {
             winnerTeamID = 0;
@@ -79,7 +50,7 @@ async function fetchFixtureStatus(
             localTeamID: sportsmonksFixtureStatus.localteam_id,
             visitorTeamID: sportsmonksFixtureStatus.visitorteam_id,
             startingAt: dayjs(sportsmonksFixtureStatus.starting_at).valueOf(),
-            status,
+            status: mapSportmonksStatus(sportsmonksFixtureStatus.status),
             winnerTeamID,
         };
 
@@ -90,17 +61,11 @@ async function fetchFixtureStatus(
     }
 }
 
-// Function to sign fixture data and add timestamp
-function signFixtureData(fixtureStatus: Status) {
+function signFixtureData(fixtureStatus: Status, privateKeyBase58: string) {
     try {
-        if (!PRIVATE_KEY) {
-            throw new Error(
-                "Missing required environment variable: PRIVATE_KEY"
-            );
-        }
-
-        const signature = signStatus(PRIVATE_KEY, fixtureStatus);
-        const publicKey = PrivateKey.fromBase58(PRIVATE_KEY).toPublicKey();
+        // Status responses sign the base fixture fields plus status and winner.
+        const signature = signStatus(privateKeyBase58, fixtureStatus);
+        const publicKey = PrivateKey.fromBase58(privateKeyBase58).toPublicKey();
 
         return {
             data: {
@@ -116,19 +81,32 @@ function signFixtureData(fixtureStatus: Status) {
     }
 }
 
-// GET endpoint handler with error handling and response formatting
 export async function GET(
     request: Request,
-    { params }: { params: { fixtureID: string } }
+    { params }: { params: Promise<{ fixtureID: string }> }
 ) {
-    const fixtureID = Number(params.fixtureID);
-    const fixtureData = await fetchFixtureStatus(fixtureID);
+    const { fixtureID: fixtureIDParam } = await params;
+    const fixtureID = Number(fixtureIDParam);
+    if (!Number.isInteger(fixtureID) || fixtureID <= 0) {
+        return Response.json({ error: "fixtureID must be a positive integer" }, { status: 400 });
+    }
+
+    let env;
+    try {
+        env = getOracleEnv();
+    } catch (error) {
+        return Response.json({ error: (error as Error).message }, { status: 500 });
+    }
+
+    const fixtureData = await fetchFixtureStatus(fixtureID, env.apiKey);
 
     if (fixtureData) {
-        return new Response(JSON.stringify(signFixtureData(fixtureData)), {
-            headers: { "Content-Type": "application/json" },
-        });
+        const signedData = signFixtureData(fixtureData, env.privateKey);
+        if (!signedData) {
+            return Response.json({ error: "Failed to sign fixture status" }, { status: 500 });
+        }
+        return Response.json(signedData);
     } else {
-        return new Response("Error fetching data", { status: 500 });
+        return Response.json({ error: "Error fetching data" }, { status: 500 });
     }
 }
