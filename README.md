@@ -173,14 +173,19 @@ Common status codes:
 The oracle normalizes Sportmonks API data for easier consumption:
 
 ### Team IDs
-| Team | ID   | | Team | ID   |
-|------|------| |------|------|
-| CSK  | 2    | | RCB  | 8    |
-| DC   | 3    | | SRH  | 9    |
-| PBKS | 4    | | GT   | 1976 |
-| KKR  | 5    | | LSG  | 1979 |
-| MI   | 6    | | TBC  | 2732 |
-| RR   | 7    | |      |      |
+| Team | ID |
+|------|----|
+| CSK | 2 |
+| DC | 3 |
+| PBKS | 4 |
+| KKR | 5 |
+| MI | 6 |
+| RR | 7 |
+| RCB | 8 |
+| SRH | 9 |
+| GT | 1976 |
+| LSG | 1979 |
+| TBC | 2732 |
 
 ### Status Codes
 | Sportmonks Output | Oracle Output | Description |
@@ -338,12 +343,21 @@ stable while still failing requests that cannot be signed.
 ### Deployment
 Deploy to [Vercel](https://vercel.com) with environment variables configured.
 
-Required deployment variables:
+Deployment variables:
 
 | Name | Required | Description |
 |------|----------|-------------|
 | `API_KEY` | yes | Sportmonks Cricket API key |
 | `PRIVATE_KEY` | yes | Mina private key used for signing |
+| `DEFAULT_LEAGUE_ID` | no | Default league for `/fixture`, defaults to `3` |
+| `DEFAULT_FIXTURE_STATUS` | no | Default Sportmonks status for `/fixture`, defaults to `NS` |
+| `FIXTURE_CACHE_SECONDS` | no | Cache TTL for `/fixture`, defaults to `60` |
+| `STATUS_CACHE_SECONDS` | no | Cache TTL for `/status/[fixtureID]`, defaults to `15` |
+
+### CI Notes
+The workflow sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so GitHub-hosted
+JavaScript actions use the newer runtime before Node 20 action support is
+removed.
 
 ## Technical Details
 
