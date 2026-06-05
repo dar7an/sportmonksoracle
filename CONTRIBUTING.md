@@ -22,12 +22,15 @@ npm run typecheck
 npm run build
 ```
 
+GitHub Actions runs the same checks for pushes and pull requests to `main`.
+
 ## Pull Request Guide
 
 - Keep changes small and focused.
 - Add or update tests when signing fields, status codes, or API payloads change.
 - Do not commit real API keys, Mina private keys, `.env`, or Vercel config.
 - Note any Sportmonks API behavior that is hard to test without live access.
+- Keep `npm audit` clean unless a documented upstream exception is required.
 
 ## Signing Contract
 

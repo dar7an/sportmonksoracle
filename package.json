@@ -3,6 +3,17 @@
     "version": "1.0.0",
     "private": true,
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dar7an/sportmonksoracle.git"
+    },
+    "bugs": {
+        "url": "https://github.com/dar7an/sportmonksoracle/issues"
+    },
+    "homepage": "https://github.com/dar7an/sportmonksoracle#readme",
+    "engines": {
+        "node": ">=22"
+    },
     "scripts": {
         "dev": "next dev",
         "build": "next build",

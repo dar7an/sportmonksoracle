@@ -1,5 +1,7 @@
 # Sportmonks Cricket Oracle
 
+[![CI](https://github.com/dar7an/sportmonksoracle/actions/workflows/ci.yml/badge.svg)](https://github.com/dar7an/sportmonksoracle/actions/workflows/ci.yml)
+
 Sportmonks Cricket Oracle is a standalone, plug-and-play API for signed cricket
 data. It fetches fixture data from the Sportmonks Cricket API, normalizes it,
 and signs the numeric payload with `o1js`.
@@ -63,7 +65,17 @@ console.log(fixturePayload.signature);
 ## API Endpoints
 
 ### `/fixture`
-Gets the next scheduled T20I fixture. This is the default homepage redirect.
+Gets the next scheduled fixture. This is the default homepage redirect.
+
+By default, it returns the next not-started T20I fixture. You can change that
+with query params.
+
+| Query param | Default | Description |
+|-------------|---------|-------------|
+| `leagueId` | `3` | Sportmonks league ID |
+| `status` | `NS` | Sportmonks fixture status filter |
+| `teamId` | none | Optional team filter applied after fetching fixtures |
+| `limit` | `1` | Number of fixtures to return, max `10` |
 
 **Response format:**
 ```json
@@ -81,6 +93,17 @@ Gets the next scheduled T20I fixture. This is the default homepage redirect.
   },
   "signature": "7mXXHVevhu1rN22QNvmEmNULzfPjdk815wPd6564b1qwWnjKMtC3qNTxyEjXUDCmubxadin4eZmRYztoVXhnvz9FyXESfsyS",
   "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
+}
+```
+
+If `limit` is greater than `1`, the response uses `data` and `signatures`
+arrays. Each signature maps to the fixture at the same array index.
+
+```json
+{
+  "data": [{ "fixtureID": 66230 }],
+  "signatures": ["7mXX..."],
+  "publicKey": "B62q..."
 }
 ```
 
@@ -129,7 +152,8 @@ Errors use JSON:
 
 ```json
 {
-  "error": "fixtureID must be a positive integer"
+  "error": "fixtureID must be a positive integer",
+  "code": "BAD_REQUEST"
 }
 ```
 
@@ -138,7 +162,11 @@ Common status codes:
 | Code | Meaning |
 |------|---------|
 | 400 | The request is invalid, such as a bad fixture ID |
-| 500 | The oracle is missing config, Sportmonks failed, or signing failed |
+| 401 | Sportmonks rejected the API key |
+| 403 | Sportmonks blocked the API key or plan |
+| 404 | No matching fixture or status was found |
+| 502 | Sportmonks failed or returned malformed data |
+| 500 | The oracle is missing config or signing failed |
 
 ## Data Interpretation
 
@@ -169,6 +197,9 @@ The oracle normalizes Sportmonks API data for easier consumption:
 
 ## Public Signing Contract
 
+The current API is treated as `v1`. Signed field order is stable for all `1.x`
+releases.
+
 The signed payload is intentionally smaller than the full JSON response. This
 keeps the contract stable and easy to verify.
 
@@ -176,6 +207,18 @@ Do not include team names, team codes, or `timestamp` in verification. They are
 included for display and debugging, but they are not signed.
 
 If you change any signed field, add a test and document the change as breaking.
+
+## Cache Behavior
+
+The API sets short public cache headers:
+
+| Endpoint | Default cache |
+|----------|---------------|
+| `/fixture` | 60 seconds |
+| `/status/[fixtureID]` | 15 seconds |
+
+You can change these with `FIXTURE_CACHE_SECONDS` and `STATUS_CACHE_SECONDS`.
+Signatures cover the signed data fields, not the cache age.
 
 ## Verification Example
 
@@ -244,6 +287,10 @@ The same signed fields can also be verified inside Mina zkApps.
    ```bash
    API_KEY=your_sportmonks_api_key
    PRIVATE_KEY=your_mina_private_key_base58
+   DEFAULT_LEAGUE_ID=3
+   DEFAULT_FIXTURE_STATUS=NS
+   FIXTURE_CACHE_SECONDS=60
+   STATUS_CACHE_SECONDS=15
    ```
 
 4. **Run locally**
@@ -281,6 +328,8 @@ npm run build
 The tests protect the signed field order and Sportmonks status mapping. These
 are part of the public contract with every consumer app.
 
+CI runs the same checks on pushes and pull requests to `main`.
+
 ### Error handling
 If `API_KEY` or `PRIVATE_KEY` is missing, API routes return a JSON error instead
 of exiting the server process. This keeps local builds and deployment checks
@@ -306,9 +355,7 @@ Required deployment variables:
 ### Security
 - Private key stored securely in environment variables
 - `.env.example` documents required config without exposing real secrets
-- `npm audit` currently reports a moderate PostCSS advisory through Next.js
-- The vulnerable PostCSS path is not used by this API-only oracle, but it should
-  be rechecked when Next.js publishes a patched dependency chain
+- `npm audit` is part of CI
 
 See [SECURITY.md](./SECURITY.md) for the vulnerability report flow.
 
@@ -320,6 +367,10 @@ See [SECURITY.md](./SECURITY.md) for the vulnerability report flow.
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
