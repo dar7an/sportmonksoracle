@@ -1,6 +1,10 @@
 # Sportmonks Cricket Oracle
 
 [![CI](https://github.com/dar7an/sportmonksoracle/actions/workflows/ci.yml/badge.svg)](https://github.com/dar7an/sportmonksoracle/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-ready-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![Security](https://img.shields.io/badge/npm%20audit-0%20vulnerabilities-brightgreen.svg)](./SECURITY.md)
 
 Sportmonks Cricket Oracle is a standalone, plug-and-play API for signed cricket
 data. It fetches fixture data from the Sportmonks Cricket API, normalizes it,
@@ -9,9 +13,18 @@ and signs the numeric payload with `o1js`.
 Use it with any app that needs verifiable cricket data. It works well for Mina
 zkApps, backend services, bots, dashboards, games, and data tools.
 
+## Why This Exists
+
+Sports apps often depend on backend data that users cannot verify. This oracle
+signs normalized Sportmonks cricket data so downstream apps can verify the
+payload before using it. That makes the data source easier to audit, pin, and
+reuse across projects.
+
 ## Live Demo
 
 **Oracle Endpoint**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)
+
+**Docs**: [https://sportmonksoracle.vercel.app/docs](https://sportmonksoracle.vercel.app/docs)
 
 ## How It Works
 
@@ -40,7 +53,7 @@ Each signature is created with `o1js` `Signature.create()`.
 
 1. Deploy this API with your own Sportmonks API key and Mina private key.
 2. Call `/fixture` or `/status/[fixtureID]` from your app.
-3. Verify `signature` with `publicKey` and the documented field order.
+3. Verify `signature` with a pinned oracle public key and the documented field order.
 4. Use the returned data only after verification succeeds.
 
 The API response shape is stable by design. Changes to signed fields, field
@@ -62,6 +75,14 @@ console.log(fixturePayload.data.fixtureID);
 console.log(fixturePayload.signature);
 ```
 
+More runnable examples are in [examples](./examples).
+
+## API Reference
+
+- Hosted docs: `/docs`
+- OpenAPI spec: [openapi.yaml](./openapi.yaml)
+- Deployment guide: [docs/deployment.md](./docs/deployment.md)
+
 ## API Endpoints
 
 ### `/fixture`
@@ -76,6 +97,19 @@ with query params.
 | `status` | `NS` | Sportmonks fixture status filter |
 | `teamId` | none | Optional team filter applied after fetching fixtures |
 | `limit` | `1` | Number of fixtures to return, max `10` |
+
+### Common League Configuration
+
+The default `leagueId` is `3`, which maps to T20I in Sportmonks Cricket. Use
+query params or `DEFAULT_LEAGUE_ID` to point the oracle at a different
+Sportmonks league that your API plan can access.
+
+Examples:
+
+```bash
+curl "https://sportmonksoracle.vercel.app/fixture?leagueId=3&status=NS"
+curl "https://sportmonksoracle.vercel.app/fixture?leagueId=3&teamId=39&limit=2"
+```
 
 **Response format:**
 ```json
@@ -96,8 +130,9 @@ with query params.
 }
 ```
 
-If `limit` is greater than `1`, the response uses `data` and `signatures`
-arrays. Each signature maps to the fixture at the same array index.
+If more than one fixture matches, the response uses `data` and `signatures`
+arrays. Each signature maps to the fixture at the same array index. If only one
+fixture matches, the API keeps the single-fixture response shape.
 
 ```json
 {
@@ -234,9 +269,14 @@ import { Signature, Field, PublicKey } from 'o1js';
 
 const response = await fetch('https://sportmonksoracle.vercel.app/fixture');
 const data = await response.json();
+const expectedPublicKey = 'B62...'; // Pin this from your trusted oracle deploy.
+
+if (data.publicKey !== expectedPublicKey) {
+  throw new Error('Oracle public key mismatch');
+}
 
 const signature = Signature.fromBase58(data.signature);
-const publicKey = PublicKey.fromBase58(data.publicKey);
+const publicKey = PublicKey.fromBase58(expectedPublicKey);
 
 const fieldsToVerify = [
   Field(data.data.fixtureID),
@@ -343,6 +383,8 @@ stable while still failing requests that cannot be signed.
 ### Deployment
 Deploy to [Vercel](https://vercel.com) with environment variables configured.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/dar7an/sportmonksoracle&env=API_KEY,PRIVATE_KEY&envDescription=Sportmonks%20API%20key%20and%20Mina%20private%20key%20are%20required.)
+
 Deployment variables:
 
 | Name | Required | Description |
@@ -353,6 +395,9 @@ Deployment variables:
 | `DEFAULT_FIXTURE_STATUS` | no | Default Sportmonks status for `/fixture`, defaults to `NS` |
 | `FIXTURE_CACHE_SECONDS` | no | Cache TTL for `/fixture`, defaults to `60` |
 | `STATUS_CACHE_SECONDS` | no | Cache TTL for `/status/[fixtureID]`, defaults to `15` |
+
+Docker users can start from [docker-compose.example.yml](./docker-compose.example.yml).
+See [docs/deployment.md](./docs/deployment.md) for Vercel and Docker steps.
 
 ### CI Notes
 The workflow sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so GitHub-hosted

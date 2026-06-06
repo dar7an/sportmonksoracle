@@ -7,3 +7,4 @@
 - Added signed fixture and fixture status endpoints.
 - Added tests for signing field order, status mapping, and route behavior.
 - Added configurable fixture filters and safe cache headers.
+- Added runnable examples, OpenAPI docs, hosted docs page, and Docker/Vercel deployment guidance.

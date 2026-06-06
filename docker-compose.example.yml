@@ -1,0 +1,12 @@
+services:
+  oracle:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      API_KEY: ${API_KEY}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      DEFAULT_LEAGUE_ID: ${DEFAULT_LEAGUE_ID:-3}
+      DEFAULT_FIXTURE_STATUS: ${DEFAULT_FIXTURE_STATUS:-NS}
+      FIXTURE_CACHE_SECONDS: ${FIXTURE_CACHE_SECONDS:-60}
+      STATUS_CACHE_SECONDS: ${STATUS_CACHE_SECONDS:-15}

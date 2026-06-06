@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: Sportmonks Cricket Oracle API
+  version: 1.0.0
+  summary: Signed cricket fixture and status data for verifiable apps.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://sportmonksoracle.vercel.app
+    description: Public demo oracle
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /fixture:
+    get:
+      summary: Get upcoming fixtures
+      description: Returns one signed fixture by default, or a signed list when more than one fixture matches.
+      parameters:
+        - name: leagueId
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 3
+          description: Sportmonks league ID.
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            default: NS
+          description: Sportmonks fixture status filter.
+        - name: teamId
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Optional team filter applied after fetching fixtures.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 1
+          description: Number of fixtures to return.
+      responses:
+        "200":
+          description: Signed fixture payload.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Short public cache header.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SignedFixtureResponse"
+                  - $ref: "#/components/schemas/SignedFixtureListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/SportmonksAuthError"
+        "403":
+          $ref: "#/components/responses/SportmonksAuthError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/SportmonksError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /status/{fixtureID}:
+    get:
+      summary: Get fixture status
+      parameters:
+        - name: fixtureID
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Sportmonks fixture ID.
+      responses:
+        "200":
+          description: Signed fixture status payload.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Short public cache header.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignedStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/SportmonksAuthError"
+        "403":
+          $ref: "#/components/responses/SportmonksAuthError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/SportmonksError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+components:
+  schemas:
+    FixtureData:
+      type: object
+      required:
+        - fixtureID
+        - localTeamID
+        - visitorTeamID
+        - startingAt
+        - timestamp
+      properties:
+        fixtureID:
+          type: integer
+        localTeamID:
+          type: integer
+        visitorTeamID:
+          type: integer
+        startingAt:
+          type: integer
+          description: Unix timestamp in milliseconds.
+        localTeamName:
+          type: string
+        localTeamCode:
+          type: string
+        visitorTeamName:
+          type: string
+        visitorTeamCode:
+          type: string
+        timestamp:
+          type: integer
+          description: Time the oracle built the response.
+    StatusData:
+      allOf:
+        - $ref: "#/components/schemas/FixtureData"
+        - type: object
+          required:
+            - status
+            - winnerTeamID
+          properties:
+            status:
+              type: integer
+              enum: [1, 2, 3, 4]
+            winnerTeamID:
+              type: integer
+              description: Sportmonks winner team ID, or 0 when unknown.
+    SignedFixtureResponse:
+      type: object
+      required: [data, signature, publicKey]
+      properties:
+        data:
+          $ref: "#/components/schemas/FixtureData"
+        signature:
+          type: string
+        publicKey:
+          type: string
+    SignedFixtureListResponse:
+      type: object
+      required: [data, signatures, publicKey]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/FixtureData"
+        signatures:
+          type: array
+          items:
+            type: string
+        publicKey:
+          type: string
+    SignedStatusResponse:
+      type: object
+      required: [data, signature, publicKey]
+      properties:
+        data:
+          $ref: "#/components/schemas/StatusData"
+        signature:
+          type: string
+        publicKey:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    SportmonksAuthError:
+      description: Sportmonks rejected or blocked the API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: No matching fixture or status was found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    SportmonksError:
+      description: Sportmonks failed or returned malformed data.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServerError:
+      description: Oracle config or signing failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
