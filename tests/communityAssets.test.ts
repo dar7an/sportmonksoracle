@@ -11,6 +11,15 @@ const exampleScripts = [
     "examples/shared/sample-payloads.mjs",
 ];
 
+test("the homepage is a verification console, not a redirect to JSON", () => {
+    const nextConfig = readFileSync("next.config.mjs", "utf8");
+    const home = readFileSync("app/page.tsx", "utf8");
+
+    assert.doesNotMatch(nextConfig, /destination:\s*["']\/fixture["']/);
+    assert.match(home, /Verification console/);
+    assert.match(home, /0 means no team id/);
+});
+
 test("openapi.yaml documents the v1.1 public contract", () => {
     const openapi = readFileSync("openapi.yaml", "utf8");
 

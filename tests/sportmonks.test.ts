@@ -106,6 +106,23 @@ test("fetchFixtures maps Sportmonks 429 distinctly after retries", async () => {
     assert.equal(hits, 3);
 });
 
+test("fetchFixtures maps upstream timeouts to 504 after retries", async () => {
+    let hits = 0;
+    const calls = installFetchMock(() => {
+        hits += 1;
+        const error = new Error("aborted");
+        error.name = "TimeoutError";
+        throw error;
+    });
+
+    await assert.rejects(
+        () => fetchFixtures({ leagueId: 3, status: "NS", limit: 1 }, "test-key", { fetch: calls.fetch }),
+        (error: unknown) =>
+            error instanceof OracleError && error.code === "UPSTREAM_TIMEOUT" && error.status === 504
+    );
+    assert.equal(hits, 3);
+});
+
 test("fetchFixtures does not retry 401, 403, or 404", async () => {
     for (const status of [401, 403, 404]) {
         let hits = 0;

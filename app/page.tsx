@@ -236,8 +236,8 @@ function StatusCard({ status }: { status: StatusView }) {
             signed: true,
             hint:
                 winnerTeamID === 0
-                    ? "No winner yet. 0 is no team id, not a synonym for ongoing."
-                    : undefined,
+                    ? "0 means no team id — not a team, and not a synonym for ongoing."
+                    : "Signed Sportmonks team id, not a display name.",
         },
         {
             field: "outcome",
