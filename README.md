@@ -6,45 +6,39 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![Security](https://img.shields.io/badge/npm%20audit-0%20vulnerabilities-brightgreen.svg)](./SECURITY.md)
 
-Sportmonks Cricket Oracle is a standalone, plug-and-play API for signed cricket
-data. It fetches fixture data from the Sportmonks Cricket API, normalizes it,
-and signs the numeric payload with `o1js`.
-
-Use it with any app that needs verifiable cricket data. It works well for Mina
-zkApps, backend services, bots, dashboards, games, and data tools.
-
-## Why This Exists
-
-Sports apps often depend on backend data that users cannot verify. This oracle
-signs normalized Sportmonks cricket data so downstream apps can verify the
-payload before using it. That makes the data source easier to audit, pin, and
-reuse across projects.
+Sportmonks Cricket Oracle is a Mina/o1js signed cricket-data API. It fetches
+Sportmonks Cricket v2, normalizes stable integers, and Schnorr-signs them.
+It is not a predictor, sportsbook, or odds app.
 
 ## Live Demo
 
-**Oracle Endpoint**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)
+**Verification console**: [https://sportmonksoracle.vercel.app](https://sportmonksoracle.vercel.app)
 
 **Docs**: [https://sportmonksoracle.vercel.app/docs](https://sportmonksoracle.vercel.app/docs)
 
+**OpenAPI explorer**: [https://sportmonksoracle.vercel.app/spec](https://sportmonksoracle.vercel.app/spec)
+
 ## How It Works
 
-The oracle fetches cricket data from Sportmonks and signs it using `o1js`
-cryptographic primitives. Client apps can verify the signature before trusting
-or storing the response.
+The oracle fetches cricket data from Sportmonks and signs it using `o1js`.
+Client apps verify the signature against a pinned public key before trusting
+the numeric fields.
 
 ### Cryptographic Signing Scheme
 
-The oracle uses a field-based signing approach. Only stable numeric fields are
-signed, so consumers can ignore display fields such as team names and codes.
+Only stable numeric fields are signed. Display fields such as team names are
+unsigned labels.
 
-**For fixture data** (4 fields):
+**Fixture data** (4 fields):
+
 ```javascript
 [fixtureID, localTeamID, visitorTeamID, startingAt]
 ```
 
-**For match status** (6 fields):
+**Match status** (7 fields, v1.1):
+
 ```javascript
-[fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID]
+[fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID, outcome]
 ```
 
 Each signature is created with `o1js` `Signature.create()`.
@@ -52,95 +46,44 @@ Each signature is created with `o1js` `Signature.create()`.
 ## Plug-and-Play Usage
 
 1. Deploy this API with your own Sportmonks API key and Mina private key.
-2. Call `/fixture` or `/status/[fixtureID]` from your app.
+2. Inspect `/` or call `/fixture` and `/status/[fixtureID]`.
 3. Verify `signature` with a pinned oracle public key and the documented field order.
 4. Use the returned data only after verification succeeds.
 
-The API response shape is stable by design. Changes to signed fields, field
-order, or status codes should be treated as breaking changes.
-
-### Quick Client Example
-
-```javascript
-const oracleBaseUrl = 'https://your-oracle.example.com';
-
-const fixtureResponse = await fetch(`${oracleBaseUrl}/fixture`);
-const fixturePayload = await fixtureResponse.json();
-
-if (!fixtureResponse.ok) {
-  throw new Error(fixturePayload.error ?? 'Oracle request failed');
-}
-
-console.log(fixturePayload.data.fixtureID);
-console.log(fixturePayload.signature);
-```
+Changes to signed fields, field order, status codes, or outcome codes are
+breaking. This release is **v1.1**.
 
 More runnable examples are in [examples](./examples).
 
 ## API Reference
 
+- Verification console: `/`
 - Hosted docs: `/docs`
+- OpenAPI explorer: `/spec`
 - OpenAPI spec: [openapi.yaml](./openapi.yaml)
 - Deployment guide: [docs/deployment.md](./docs/deployment.md)
 
 ## API Endpoints
 
 ### `/fixture`
-Gets the next scheduled fixture. This is the default homepage redirect.
 
-By default, it returns the next not-started T20I fixture. You can change that
-with query params.
+Returns the next scheduled fixture by default (T20I league `3`, status `NS`).
 
 | Query param | Default | Description |
 |-------------|---------|-------------|
-| `leagueId` | `3` | Sportmonks league ID |
-| `status` | `NS` | Sportmonks fixture status filter |
-| `teamId` | none | Optional team filter applied after fetching fixtures |
+| `leagueId` | `3` | Sportmonks league ID (T20I) |
+| `status` | `NS` | Sportmonks fixture status filter, not oracle codes 1–6 |
+| `teamId` | none | Native `filter[localteam_id]` / `filter[visitorteam_id]`, merged |
 | `limit` | `1` | Number of fixtures to return, max `10` |
-
-### Common League Configuration
-
-The default `leagueId` is `3`, which maps to T20I in Sportmonks Cricket. Use
-query params or `DEFAULT_LEAGUE_ID` to point the oracle at a different
-Sportmonks league that your API plan can access.
-
-Examples:
 
 ```bash
 curl "https://sportmonksoracle.vercel.app/fixture?leagueId=3&status=NS"
 curl "https://sportmonksoracle.vercel.app/fixture?leagueId=3&teamId=39&limit=2"
 ```
 
-**Response format:**
-```json
-{
-  "data": {
-    "fixtureID": 66230,
-    "localTeamID": 39,
-    "visitorTeamID": 37,
-    "startingAt": 1752154200000,
-    "localTeamName": "Sri Lanka",
-    "localTeamCode": "SL",
-    "visitorTeamName": "Bangladesh", 
-    "visitorTeamCode": "BGD",
-    "timestamp": 1750437493555
-  },
-  "signature": "7mXXHVevhu1rN22QNvmEmNULzfPjdk815wPd6564b1qwWnjKMtC3qNTxyEjXUDCmubxadin4eZmRYztoVXhnvz9FyXESfsyS",
-  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
-}
-```
-
-If more than one fixture matches, the response uses `data` and `signatures`
-arrays. Each signature maps to the fixture at the same array index. If only one
-fixture matches, the API keeps the single-fixture response shape.
-
-```json
-{
-  "data": [{ "fixtureID": 66230 }],
-  "signatures": ["7mXX..."],
-  "publicKey": "B62q..."
-}
-```
+If one fixture matches, the response is an object with `signature`. If more
+than one fixture matches, the response uses `data` and `signatures` arrays.
+Each signature maps to the fixture at the same array index.
 
 **Signed fields:**
 
@@ -149,7 +92,7 @@ fixture matches, the API keeps the single-fixture response shape.
 | `fixtureID` | number | Sportmonks fixture ID |
 | `localTeamID` | number | Sportmonks local team ID |
 | `visitorTeamID` | number | Sportmonks visitor team ID |
-| `startingAt` | number | Fixture start time as Unix milliseconds |
+| `startingAt` | number | Start time as Unix milliseconds, parsed as UTC |
 
 **Unsigned display fields:**
 
@@ -162,13 +105,8 @@ fixture matches, the API keeps the single-fixture response shape.
 | `timestamp` | number | Time the oracle built this response |
 
 ### `/status/[fixtureID]`
-Gets the current status of a specific fixture.
 
-**Example**: [/status/66230](https://sportmonksoracle.vercel.app/status/66230)
-
-**Response includes all fixture data plus:**
-- `status`: Match status (1=Not Started, 2=In Progress, 3=Finished, 4=Cancelled)
-- `winnerTeamID`: Winner team ID (0 if no winner yet)
+Returns signed status for one fixture.
 
 **Signed fields:**
 
@@ -177,13 +115,18 @@ Gets the current status of a specific fixture.
 | `fixtureID` | number | Sportmonks fixture ID |
 | `localTeamID` | number | Sportmonks local team ID |
 | `visitorTeamID` | number | Sportmonks visitor team ID |
-| `startingAt` | number | Fixture start time as Unix milliseconds |
-| `status` | number | Normalized oracle status code |
-| `winnerTeamID` | number | Sportmonks winner team ID, or 0 when unknown |
+| `startingAt` | number | Start time as Unix milliseconds, parsed as UTC |
+| `status` | number | Oracle status code 1–6 |
+| `winnerTeamID` | number | Winner team ID, or `0` when no team id is present |
+| `outcome` | number | 0 none/unknown, 1 winner, 2 draw, 3 no-result |
+
+Team names may appear on this endpoint as **unsigned** labels when Sportmonks
+includes them. They are not in the signature.
+
+`winnerTeamID = 0` is Field-friendly “no team id”. It is not a synonym for
+“match ongoing.”
 
 ### Error Response
-
-Errors use JSON:
 
 ```json
 {
@@ -192,22 +135,74 @@ Errors use JSON:
 }
 ```
 
-Common status codes:
-
-| Code | Meaning |
-|------|---------|
-| 400 | The request is invalid, such as a bad fixture ID |
-| 401 | Sportmonks rejected the API key |
-| 403 | Sportmonks blocked the API key or plan |
-| 404 | No matching fixture or status was found |
-| 502 | Sportmonks failed or returned malformed data |
-| 500 | The oracle is missing config or signing failed |
+| HTTP | Code | Meaning |
+|------|------|---------|
+| 400 | `BAD_REQUEST` | Invalid query or path |
+| 401 / 403 | `SPORTMONKS_AUTH_ERROR` | Sportmonks rejected the API key |
+| 404 | `NOT_FOUND` | No matching fixture |
+| 429 | `RATE_LIMITED` | Inbound limiter on this instance |
+| 429 | `SPORTMONKS_RATE_LIMIT` | Sportmonks 429 after bounded retry |
+| 502 | `UNKNOWN_STATUS` | Sportmonks status string is not in the documented table |
+| 502 | `MALFORMED_UPSTREAM` | Invalid `starting_at`, team include, or `draw_noresult` |
+| 502 | `SPORTMONKS_ERROR` | Other Sportmonks failure |
+| 504 | `UPSTREAM_TIMEOUT` | Sportmonks timed out |
+| 500 | `CONFIG_ERROR` | Missing or invalid env |
+| 500 | `SIGNING_ERROR` | o1js signing failed |
+| 500 | `INTERNAL_ERROR` | Unexpected failure |
 
 ## Data Interpretation
 
-The oracle normalizes Sportmonks API data for easier consumption:
+### Status codes
 
-### Team IDs
+Documented Sportmonks cricket statuses
+([source](https://docs.sportmonks.com/v2/cricket-api/statuses-and-definitions)):
+
+| Oracle | Meaning | Sportmonks strings |
+|--------|---------|--------------------|
+| 1 | Not started | `NS`, `Delayed` |
+| 2 | In progress | `1st Innings`, `2nd Innings`, `3rd Innings`, `4th Innings`, `Innings Break`, `Int.`, `Stump Day 1`–`4`, `Tea Break`, `Lunch`, `Dinner` |
+| 3 | Finished | `Finished` |
+| 4 | Cancelled | `Cancl.` only (`Cancl` without a period is accepted as a docs-typo alias) |
+| 5 | Postponed | `Postp.` |
+| 6 | Abandoned | `Aban.` |
+
+Unknown strings return HTTP 502 `UNKNOWN_STATUS`. They are **not** signed as
+cancelled. `Aban.` is 6, not 4.
+
+### Outcome codes
+
+Derived from `winner_team_id` and `draw_noresult`:
+
+| Oracle | Meaning |
+|--------|---------|
+| 0 | None / unknown |
+| 1 | Winner (`winnerTeamID` is the winning team) |
+| 2 | Draw |
+| 3 | No result |
+
+`outcome = 0` is not “ongoing only.” Sportmonks sometimes returns `Finished`
+with a null winner and null `draw_noresult`. The oracle signs that as
+`winnerTeamID = 0`, `outcome = 0` rather than inventing a result. A winner
+together with a draw/no-result flag is refused as malformed upstream.
+
+### Data transformations
+
+- **startingAt**: ISO 8601 parsed as UTC milliseconds. Non-finite values are 502.
+- **winnerTeamID**: `0` when Sportmonks has no team id.
+- **timestamp**: unsigned oracle build time.
+
+### League IDs
+
+Default `leagueId` is **3 (T20I)**. Other Sportmonks league IDs work if your
+API plan includes them.
+
+<details>
+<summary>Historical IPL franchise IDs (unsigned, not a signing contract)</summary>
+
+These IDs were used in earlier project notes. They are **not** signed, not
+validated by this oracle, and may drift. Prefer Sportmonks as the source of
+team IDs.
+
 | Team | ID |
 |------|----|
 | CSK | 2 |
@@ -222,47 +217,29 @@ The oracle normalizes Sportmonks API data for easier consumption:
 | LSG | 1979 |
 | TBC | 2732 |
 
-### Status Codes
-| Sportmonks Output | Oracle Output | Description |
-|-------------------|---------------|-------------|
-| NS | 1 | Not Started |
-| 1st Innings, 2nd Innings, Innings Break, Int. | 2 | In Progress |
-| Finished | 3 | Finished |
-| All other statuses | 4 | Cancelled |
-
-### Data Transformations
-- **startingAt**: Converted from ISO 8601 to UNIX timestamp (milliseconds)
-- **winnerTeamID**: Returns 0 for null (when match is ongoing)
-- **timestamp**: Oracle's last update time
+</details>
 
 ## Public Signing Contract
 
-The current API is treated as `v1`. Signed field order is stable for all `1.x`
-releases.
+The current API is **v1.1**. Fixture field order is unchanged from v1. Status
+field order gained `outcome` as the seventh field and status codes 5–6.
 
-The signed payload is intentionally smaller than the full JSON response. This
-keeps the contract stable and easy to verify.
+Do not include team names, team codes, or `timestamp` in verification.
 
-Do not include team names, team codes, or `timestamp` in verification. They are
-included for display and debugging, but they are not signed.
-
-If you change any signed field, add a test and document the change as breaking.
+A valid signature means this oracle attested these fields. It does not mean
+the payload is the latest live score. Status responses may be cached for ~15
+seconds; the signature does not cover cache age.
 
 ## Cache Behavior
-
-The API sets short public cache headers:
 
 | Endpoint | Default cache |
 |----------|---------------|
 | `/fixture` | 60 seconds |
 | `/status/[fixtureID]` | 15 seconds |
 
-You can change these with `FIXTURE_CACHE_SECONDS` and `STATUS_CACHE_SECONDS`.
-Signatures cover the signed data fields, not the cache age.
+Override with `FIXTURE_CACHE_SECONDS` and `STATUS_CACHE_SECONDS` (integers).
 
 ## Verification Example
-
-You can verify signatures off-chain using `o1js`:
 
 ```javascript
 import { Signature, Field, PublicKey } from 'o1js';
@@ -286,73 +263,44 @@ const fieldsToVerify = [
 ];
 
 const isValid = signature.verify(publicKey, fieldsToVerify).toBoolean();
-console.log('Signature valid:', isValid); // Should be true
+console.log('Signature valid:', isValid);
 ```
 
-The same signed fields can also be verified inside Mina zkApps.
-
-## Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Sportmonks API │───▶│ Cricket Oracle   │───▶│ Consumer App    │
-│                 │    │  (this repo)     │    │                 │
-│ • Fixture data  │    │ • Fetch data     │    │ • Verify sigs   │
-│ • Match status  │    │ • Normalize      │    │ • Use payload   │
-│                 │    │ • Sign with o1js │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
+On-chain verification uses the same field vectors. See
+`examples/mina-zkapp-verify/OracleVerifier.ts`.
 
 ## Development
 
 ### Prerequisites
-- Node.js 22+
+
+- Node.js 22+ (see `.nvmrc`)
 - Sportmonks Cricket API key
 - Mina private key for oracle signing
 
-### Setup
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/dar7an/sportmonksoracle.git
-   cd sportmonksoracle
-   ```
+```bash
+git clone https://github.com/dar7an/sportmonksoracle.git
+cd sportmonksoracle
+npm ci
+cp .env.example .env
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+API_KEY=your_sportmonks_api_key
+PRIVATE_KEY=your_mina_private_key_base58
+DEFAULT_LEAGUE_ID=3
+DEFAULT_FIXTURE_STATUS=NS
+FIXTURE_CACHE_SECONDS=60
+STATUS_CACHE_SECONDS=15
+```
 
-3. **Environment variables**
-   Create `.env` from the example file:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+npm run dev
+```
 
-   Then set:
-   ```bash
-   API_KEY=your_sportmonks_api_key
-   PRIVATE_KEY=your_mina_private_key_base58
-   DEFAULT_LEAGUE_ID=3
-   DEFAULT_FIXTURE_STATUS=NS
-   FIXTURE_CACHE_SECONDS=60
-   STATUS_CACHE_SECONDS=15
-   ```
-
-4. **Run locally**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000)
-
-5. **Build for production**
-   ```bash
-   npm run build
-   ```
+Open [http://localhost:3000](http://localhost:3000) for the verification
+console. JSON APIs stay at `/fixture` and `/status/:id`.
 
 ### Generate a Mina Private Key
-
-This project expects `PRIVATE_KEY` to be a Mina private key in base58 format.
-One simple way to create a key is with `o1js`:
 
 ```bash
 node --input-type=module -e "import { PrivateKey } from 'o1js'; const key = PrivateKey.random(); console.log('PRIVATE_KEY=' + key.toBase58()); console.log('PUBLIC_KEY=' + key.toPublicKey().toBase58());"
@@ -362,30 +310,21 @@ Keep the private key secret. Share only the public key if a client wants to pin
 the oracle signer.
 
 ### Quality checks
-Run these before opening a pull request:
 
 ```bash
 npm test
 npm run typecheck
 npm run build
+npm audit
 ```
 
-The tests protect the signed field order and Sportmonks status mapping. These
-are part of the public contract with every consumer app.
+If `API_KEY` or `PRIVATE_KEY` is missing, API routes return JSON `CONFIG_ERROR`
+instead of crashing the process. `next build` works without secrets.
 
-CI runs the same checks on pushes and pull requests to `main`.
-
-### Error handling
-If `API_KEY` or `PRIVATE_KEY` is missing, API routes return a JSON error instead
-of exiting the server process. This keeps local builds and deployment checks
-stable while still failing requests that cannot be signed.
+Invalid `DEFAULT_LEAGUE_ID` or cache TTL env vars also return `CONFIG_ERROR` on
+the request path.
 
 ### Deployment
-Deploy to [Vercel](https://vercel.com) with environment variables configured.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/dar7an/sportmonksoracle&env=API_KEY,PRIVATE_KEY&envDescription=Sportmonks%20API%20key%20and%20Mina%20private%20key%20are%20required.)
-
-Deployment variables:
 
 | Name | Required | Description |
 |------|----------|-------------|
@@ -395,33 +334,10 @@ Deployment variables:
 | `DEFAULT_FIXTURE_STATUS` | no | Default Sportmonks status for `/fixture`, defaults to `NS` |
 | `FIXTURE_CACHE_SECONDS` | no | Cache TTL for `/fixture`, defaults to `60` |
 | `STATUS_CACHE_SECONDS` | no | Cache TTL for `/status/[fixtureID]`, defaults to `15` |
+| `RATE_LIMIT_MAX` | no | Per-instance inbound limit, defaults to `60` |
+| `RATE_LIMIT_WINDOW_MS` | no | Inbound window, defaults to `60000` |
 
-Docker users can start from [docker-compose.example.yml](./docker-compose.example.yml).
-See [docs/deployment.md](./docs/deployment.md) for Vercel and Docker steps.
-
-### CI Notes
-The workflow sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so GitHub-hosted
-JavaScript actions use the newer runtime before Node 20 action support is
-removed.
-
-## Technical Details
-
-### Signing Implementation
-- Uses `o1js` `Signature.create()` for cryptographic signing
-- Configured as external package in Next.js to avoid WASM bundling issues
-- Signs only the required numeric fields, excluding strings (team names, etc.)
-
-### Security
-- Private key stored securely in environment variables
-- `.env.example` documents required config without exposing real secrets
-- `npm audit` is part of CI
-
-See [SECURITY.md](./SECURITY.md) for the vulnerability report flow.
-
-## Related Projects
-
-- **[Mina Protocol](https://minaprotocol.com)** - The zero-knowledge blockchain platform
-- **[o1js](https://docs.minaprotocol.com/zkapps/o1js)** - TypeScript framework for zkApps
+See [docs/deployment.md](./docs/deployment.md).
 
 ## License
 
@@ -430,7 +346,3 @@ MIT. See [LICENSE](./LICENSE).
 ## Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md).
-
----
-
-Built for verifiable cricket data.

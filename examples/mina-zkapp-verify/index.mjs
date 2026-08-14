@@ -5,6 +5,13 @@ import {
   statusPayload,
 } from "../shared/sample-payloads.mjs";
 
+/**
+ * Off-chain counterpart of `OracleVerifier.ts`.
+ *
+ * Mina zkApps verify the same field vectors inside a SmartContract.
+ * This script checks the same bytes in Node so CI can run without
+ * compiling a circuit.
+ */
 export function verifyFixtureForMina(payload, expectedPublicKey) {
   if (payload.publicKey !== expectedPublicKey) {
     throw new Error("Oracle public key does not match the pinned key");
@@ -34,6 +41,7 @@ export function verifyStatusForMina(payload, expectedPublicKey) {
     Field(payload.data.startingAt),
     Field(payload.data.status),
     Field(payload.data.winnerTeamID),
+    Field(payload.data.outcome),
   ];
 
   return Signature.fromBase58(payload.signature)

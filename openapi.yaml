@@ -1,8 +1,18 @@
 openapi: 3.1.0
 info:
   title: Sportmonks Cricket Oracle API
-  version: 1.0.0
+  version: 1.1.0
   summary: Signed cricket fixture and status data for verifiable apps.
+  description: |
+    Mina/o1js signed cricket-data oracle. Sportmonks Cricket v2 is normalized
+    to integers and Schnorr-signed. This is not a predictor or odds API.
+
+    Breaking v1.1 changes: status codes 1–6 with no cancelled default, and a
+    signed `outcome` field. Status field order is
+    `[fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID, outcome]`.
+
+    `/` is a human verification console. `/docs` describes the contract.
+    `/spec` is an OpenAPI explorer pointed at `/openapi.yaml`.
   license:
     name: MIT
     identifier: MIT
@@ -15,7 +25,11 @@ paths:
   /fixture:
     get:
       summary: Get upcoming fixtures
-      description: Returns one signed fixture by default, or a signed list when more than one fixture matches.
+      description: |
+        Returns one signed fixture by default, or a signed list when more than
+        one fixture matches. `limit=1` with a single match is an object plus
+        `signature`. `limit=2` with two matches is `data` and `signatures` arrays.
+        Team names are unsigned display fields.
       parameters:
         - name: leagueId
           in: query
@@ -24,21 +38,24 @@ paths:
             type: integer
             minimum: 1
             default: 3
-          description: Sportmonks league ID.
+          description: Sportmonks league ID. Default 3 is T20I.
         - name: status
           in: query
           required: false
           schema:
             type: string
             default: NS
-          description: Sportmonks fixture status filter.
+          description: Sportmonks fixture status filter, not the oracle 1–6 code.
         - name: teamId
           in: query
           required: false
           schema:
             type: integer
             minimum: 1
-          description: Optional team filter applied after fetching fixtures.
+          description: >
+            Filter using Sportmonks `filter[localteam_id]` and
+            `filter[visitorteam_id]`, then merge. Pagination continues until
+            `limit` is met or pages exhaust.
         - name: limit
           in: query
           required: false
@@ -55,7 +72,7 @@ paths:
             Cache-Control:
               schema:
                 type: string
-              description: Short public cache header.
+              description: Short public cache header. Default 60 seconds.
           content:
             application/json:
               schema:
@@ -70,13 +87,22 @@ paths:
           $ref: "#/components/responses/SportmonksAuthError"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "502":
           $ref: "#/components/responses/SportmonksError"
+        "504":
+          $ref: "#/components/responses/UpstreamTimeout"
         "500":
           $ref: "#/components/responses/ServerError"
   /status/{fixtureID}:
     get:
       summary: Get fixture status
+      description: |
+        Returns the signed status vector. Unsigned team names may be present
+        when Sportmonks includes them. `timestamp` is unsigned. A valid
+        signature means this oracle attested these fields once, not that the
+        match is live.
       parameters:
         - name: fixtureID
           in: path
@@ -92,7 +118,7 @@ paths:
             Cache-Control:
               schema:
                 type: string
-              description: Short public cache header.
+              description: Short public cache header. Default 15 seconds.
           content:
             application/json:
               schema:
@@ -105,8 +131,12 @@ paths:
           $ref: "#/components/responses/SportmonksAuthError"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "502":
           $ref: "#/components/responses/SportmonksError"
+        "504":
+          $ref: "#/components/responses/UpstreamTimeout"
         "500":
           $ref: "#/components/responses/ServerError"
 components:
@@ -128,18 +158,22 @@ components:
           type: integer
         startingAt:
           type: integer
-          description: Unix timestamp in milliseconds.
+          description: Unix timestamp in milliseconds, parsed as UTC.
         localTeamName:
           type: string
+          description: Unsigned display name.
         localTeamCode:
           type: string
+          description: Unsigned display code.
         visitorTeamName:
           type: string
+          description: Unsigned display name.
         visitorTeamCode:
           type: string
+          description: Unsigned display code.
         timestamp:
           type: integer
-          description: Time the oracle built the response.
+          description: Unsigned time the oracle built the response.
     StatusData:
       allOf:
         - $ref: "#/components/schemas/FixtureData"
@@ -147,13 +181,23 @@ components:
           required:
             - status
             - winnerTeamID
+            - outcome
           properties:
             status:
               type: integer
-              enum: [1, 2, 3, 4]
+              enum: [1, 2, 3, 4, 5, 6]
+              description: >
+                1 not started, 2 in progress, 3 finished, 4 cancelled,
+                5 postponed, 6 abandoned.
             winnerTeamID:
               type: integer
-              description: Sportmonks winner team ID, or 0 when unknown.
+              description: Sportmonks winner team ID, or 0 when no team id is present.
+            outcome:
+              type: integer
+              enum: [0, 1, 2, 3]
+              description: >
+                0 none/unknown, 1 winner, 2 draw, 3 no-result. 0 is not
+                “ongoing only”.
     SignedFixtureResponse:
       type: object
       required: [data, signature, publicKey]
@@ -196,6 +240,19 @@ components:
           type: string
         code:
           type: string
+          enum:
+            - BAD_REQUEST
+            - CONFIG_ERROR
+            - NOT_FOUND
+            - SIGNING_ERROR
+            - SPORTMONKS_AUTH_ERROR
+            - SPORTMONKS_ERROR
+            - SPORTMONKS_RATE_LIMIT
+            - UNKNOWN_STATUS
+            - MALFORMED_UPSTREAM
+            - UPSTREAM_TIMEOUT
+            - RATE_LIMITED
+            - INTERNAL_ERROR
   responses:
     BadRequest:
       description: Invalid request.
@@ -215,14 +272,26 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    RateLimited:
+      description: Caller or Sportmonks rate limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     SportmonksError:
-      description: Sportmonks failed or returned malformed data.
+      description: Sportmonks failed, returned an unknown status, or sent malformed data.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UpstreamTimeout:
+      description: Sportmonks timed out.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     ServerError:
-      description: Oracle config or signing failed.
+      description: Oracle config, signing, or internal failure.
       content:
         application/json:
           schema:
