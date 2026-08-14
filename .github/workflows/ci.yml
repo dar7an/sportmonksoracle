@@ -25,6 +25,9 @@ jobs:
         run: npm ci
 
       - name: Audit dependencies
+        # Keep this step even when a finding appears. Prefer fixing the
+        # advisory. `npm audit --omit=dev` is allowed only if the remaining
+        # issue is confined to an unused development path.
         run: npm audit
 
       - name: Run tests

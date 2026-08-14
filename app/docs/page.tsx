@@ -1,140 +1,182 @@
-const sections = [
-    {
-        title: "Endpoints",
-        body: "`/fixture` returns signed fixture data. `/status/[fixtureID]` returns signed match status data.",
-    },
-    {
-        title: "Signing Contract",
-        body: "Fixture signatures cover fixtureID, localTeamID, visitorTeamID, and startingAt. Status signatures add status and winnerTeamID. Consumers should pin the oracle public key.",
-    },
-    {
-        title: "Cache Behavior",
-        body: "Fixture responses cache for 60 seconds by default. Status responses cache for 15 seconds by default.",
-    },
-    {
-        title: "Deploy",
-        body: "Set API_KEY and PRIVATE_KEY, then deploy to Vercel or run the Docker image.",
-    },
-];
-
-const links = [
-    { href: "/fixture", label: "Try /fixture" },
-    { href: "/openapi.yaml", label: "OpenAPI spec" },
-    { href: "https://github.com/dar7an/sportmonksoracle#readme", label: "README" },
-    { href: "https://github.com/dar7an/sportmonksoracle/tree/main/examples", label: "Examples" },
-    { href: "https://github.com/dar7an/sportmonksoracle/blob/main/docs/deployment.md", label: "Deployment" },
-    { href: "https://github.com/dar7an/sportmonksoracle/blob/main/SECURITY.md", label: "Security" },
-];
-
 export default function DocsPage() {
     return (
-        <main style={styles.main}>
-            <section style={styles.hero}>
-                <p style={styles.eyebrow}>Sportmonks Cricket Oracle</p>
-                <h1 style={styles.title}>Signed cricket data for verifiable apps</h1>
-                <p style={styles.lead}>
-                    A standalone API that fetches Sportmonks cricket data, normalizes it,
-                    and signs the stable numeric fields with o1js.
+        <main id="main" className="page">
+            <section className="hero">
+                <p className="eyebrow">Signing contract v1.1</p>
+                <h1>How this oracle attests cricket data</h1>
+                <p className="lead">
+                    Sportmonks Cricket v2 is normalized to integers and Schnorr-signed
+                    with o1js. This is not a predictor, sportsbook, or odds app.
                 </p>
-                <div style={styles.links}>
-                    {links.map((link) => (
-                        <a key={link.href} href={link.href} style={styles.link}>
-                            {link.label}
-                        </a>
-                    ))}
+                <div className="hero-actions">
+                    <a className="button" href="/">
+                        Inspect a live fixture
+                    </a>
+                    <a className="button-secondary" href="/spec">
+                        Open API explorer
+                    </a>
+                    <a className="button-secondary" href="/fixture">
+                        View fixture JSON
+                    </a>
                 </div>
             </section>
 
-            <section style={styles.grid}>
-                {sections.map((section) => (
-                    <article key={section.title} style={styles.card}>
-                        <h2 style={styles.cardTitle}>{section.title}</h2>
-                        <p style={styles.cardBody}>{section.body}</p>
-                    </article>
-                ))}
-            </section>
+            <div className="docs-grid">
+                <article className="card">
+                    <h2>Signed field order</h2>
+                    <p>
+                        Fixture signatures cover four fields: <code>fixtureID</code>,{" "}
+                        <code>localTeamID</code>, <code>visitorTeamID</code>,{" "}
+                        <code>startingAt</code>.
+                    </p>
+                    <p>
+                        Status signatures cover seven fields: those four, then{" "}
+                        <code>status</code>, <code>winnerTeamID</code>,{" "}
+                        <code>outcome</code>. Pin the oracle public key before verifying.
+                    </p>
+                    <p>
+                        Team names, team codes, and <code>timestamp</code> are unsigned.{" "}
+                        <code>winnerTeamID = 0</code> means no team id, not “match
+                        ongoing.”
+                    </p>
+                </article>
 
-            <section style={styles.panel}>
-                <h2 style={styles.cardTitle}>Quick request</h2>
-                <pre style={styles.code}>{`curl https://sportmonksoracle.vercel.app/fixture?leagueId=3&status=NS&limit=1`}</pre>
+                <article className="card">
+                    <h2>Status codes</h2>
+                    <p>
+                        Unknown Sportmonks strings are not signed. The oracle returns HTTP
+                        502 instead of guessing cancelled.
+                    </p>
+                    <table className="status-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Code</th>
+                                <th scope="col">Meaning</th>
+                                <th scope="col">Sportmonks statuses</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Not started</td>
+                                <td>NS, Delayed</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>In progress</td>
+                                <td>
+                                    1st–4th Innings, Innings Break, Int., Stump Day 1–4, Tea
+                                    Break, Lunch, Dinner
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>Finished</td>
+                                <td>Finished</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>Cancelled</td>
+                                <td>Cancl. (Cancl without a period is accepted as a docs-typo alias)</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>Postponed</td>
+                                <td>Postp.</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>Abandoned</td>
+                                <td>Aban.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <article className="card">
+                    <h2>Outcome codes</h2>
+                    <p>
+                        Outcome is derived from <code>winner_team_id</code> and{" "}
+                        <code>draw_noresult</code>. Code 0 is none/unknown — including a
+                        Finished fixture whose result fields are still empty.
+                    </p>
+                    <table className="status-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Code</th>
+                                <th scope="col">Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0</td>
+                                <td>None / unknown</td>
+                            </tr>
+                            <tr>
+                                <td>1</td>
+                                <td>Winner — winnerTeamID is the winning team</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>Draw</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>No result</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <article className="card">
+                    <h2>Endpoints</h2>
+                    <p>
+                        <code>/fixture</code> returns signed fixtures.{" "}
+                        <code>/status/:id</code> returns signed status. One match keeps
+                        the object shape; two or more use <code>data</code> and{" "}
+                        <code>signatures</code> arrays.
+                    </p>
+                    <div className="chip-row">
+                        <a className="chip chip-primary" href="/">
+                            Inspect console
+                        </a>
+                        <a className="chip" href="/fixture">
+                            /fixture
+                        </a>
+                        <a className="chip" href="/openapi.yaml">
+                            openapi.yaml
+                        </a>
+                        <a className="chip" href="/spec">
+                            /spec
+                        </a>
+                    </div>
+                </article>
+
+                <article className="card">
+                    <h2>Cache and freshness</h2>
+                    <p>
+                        Fixture responses cache for about 60 seconds. Status responses
+                        cache for about 15 seconds. A valid signature means this oracle
+                        attested the signed fields. It does not mean the payload is the
+                        latest live score. <code>timestamp</code> is unsigned wall-clock
+                        time from when the payload was built.
+                    </p>
+                </article>
+
+                <article className="card">
+                    <h2>Deploy</h2>
+                    <p>
+                        Set <code>API_KEY</code> and <code>PRIVATE_KEY</code>, then deploy
+                        to Vercel or run the Docker image. Default league is T20I{" "}
+                        <code>3</code>.
+                    </p>
+                </article>
+            </div>
+
+            <section className="panel">
+                <h2>Quick request</h2>
+                <pre>{`curl "https://sportmonksoracle.vercel.app/fixture?leagueId=3&status=NS&limit=1"`}</pre>
             </section>
         </main>
     );
 }
-
-const styles: Record<string, CSSProperties> = {
-    main: {
-        maxWidth: "960px",
-        margin: "0 auto",
-        padding: "48px 20px",
-        fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        color: "#172026",
-    },
-    hero: {
-        paddingBottom: "32px",
-        borderBottom: "1px solid #d8dee4",
-    },
-    eyebrow: {
-        margin: 0,
-        fontSize: "14px",
-        fontWeight: 700,
-        color: "#2563eb",
-    },
-    title: {
-        margin: "10px 0",
-        fontSize: "42px",
-        lineHeight: 1.1,
-        letterSpacing: 0,
-    },
-    lead: {
-        maxWidth: "720px",
-        fontSize: "18px",
-        lineHeight: 1.6,
-    },
-    links: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "10px",
-        marginTop: "24px",
-    },
-    link: {
-        color: "#0f172a",
-        border: "1px solid #cbd5e1",
-        borderRadius: "8px",
-        padding: "8px 12px",
-        textDecoration: "none",
-    },
-    grid: {
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "16px",
-        marginTop: "28px",
-    },
-    card: {
-        border: "1px solid #d8dee4",
-        borderRadius: "8px",
-        padding: "18px",
-    },
-    cardTitle: {
-        margin: "0 0 8px",
-        fontSize: "20px",
-    },
-    cardBody: {
-        margin: 0,
-        lineHeight: 1.55,
-    },
-    panel: {
-        marginTop: "28px",
-        border: "1px solid #d8dee4",
-        borderRadius: "8px",
-        padding: "18px",
-    },
-    code: {
-        overflowX: "auto",
-        background: "#f6f8fa",
-        borderRadius: "8px",
-        padding: "14px",
-    },
-};
-import type { CSSProperties } from "react";
