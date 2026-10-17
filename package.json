@@ -19,7 +19,7 @@
         "build": "next build",
         "start": "next start",
         "typecheck": "tsc --noEmit",
-        "test": "node --test --test-isolation=process --import tsx tests/*.test.ts"
+        "test": "node --test --import tsx tests/*.test.ts"
     },
     "dependencies": {
         "dayjs": "^1.11.21",
