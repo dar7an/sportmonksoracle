@@ -14,6 +14,7 @@ export function statusFields(data) {
     ...fixtureFields(data),
     Field(data.status),
     Field(data.winnerTeamID),
+    Field(data.outcome),
   ];
 }
 

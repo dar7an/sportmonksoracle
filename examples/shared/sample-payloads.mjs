@@ -19,6 +19,7 @@ export const statusData = {
   ...fixtureData,
   status: 3,
   winnerTeamID: 39,
+  outcome: 1,
 };
 
 export const publicKey = privateKey.toPublicKey().toBase58();

@@ -22,5 +22,14 @@ Never commit real secret values. Use `.env.example` as the local template.
 ## Oracle Integrity
 
 The private key signs only the numeric fields that consumer apps verify.
-Any change to signed field order, status codes, or timestamp conversion should
-be reviewed as a security-sensitive change.
+
+Treat these as security-sensitive, breaking changes:
+
+- Signed field order (fixture: 4 fields; status: 7 fields in v1.1)
+- Status codes 1–6 (unknown Sportmonks strings must not be signed)
+- Outcome codes 0–3
+- `startingAt` UTC millisecond conversion
+- `winnerTeamID = 0` meaning “no team id”
+
+A valid signature means this oracle attested those fields. It does not prove
+the payload is live. `timestamp` is unsigned.

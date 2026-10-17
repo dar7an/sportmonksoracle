@@ -9,6 +9,10 @@ node examples/node-verify-signature/index.mjs
 node examples/mina-zkapp-verify/index.mjs
 ```
 
+`examples/mina-zkapp-verify/OracleVerifier.ts` is a Mina `SmartContract` that
+verifies the same v1.1 field vectors on-chain. The `index.mjs` script is the
+off-chain counterpart used in CI.
+
 ## Verify a Live Oracle
 
 ```bash

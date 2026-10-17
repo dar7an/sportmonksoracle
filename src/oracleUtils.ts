@@ -1,4 +1,6 @@
-import { PrivateKey, Signature, Field } from 'o1js';
+import { PrivateKey, Signature, Field } from "o1js";
+
+export const SIGNING_CONTRACT_VERSION = "1.1";
 
 export interface Fixture {
     fixtureID: number | bigint;
@@ -9,10 +11,19 @@ export interface Fixture {
 }
 
 export interface Status extends Fixture {
-    /** Oracle status code. See src/status.ts for the Sportmonks mapping. */
+    /** Oracle status code 1–6. See src/status.ts. */
     status: number | bigint;
-    /** Uses 0 while Sportmonks has no winner_team_id. */
+    /**
+     * Sportmonks winner team id, or 0 when no team id is present.
+     * 0 is Field-friendly “no team id”, not a synonym for “match ongoing”.
+     */
     winnerTeamID: number | bigint;
+    /**
+     * Signed outcome: 0 none/unknown, 1 winner, 2 draw, 3 no-result.
+     * 0 is not “ongoing only” — Finished fixtures can also be 0 when
+     * Sportmonks has not yet populated winner or draw_noresult.
+     */
+    outcome: number | bigint;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -20,7 +31,7 @@ export interface Status extends Fixture {
 /* -------------------------------------------------------------------------- */
 
 export function fixtureToFields(fixture: Fixture): Field[] {
-    // This order is the public signing contract for fixture payloads.
+    // Public signing contract for fixture payloads (v1.1, unchanged from v1).
     return [
         Field(fixture.fixtureID),
         Field(fixture.localTeamID),
@@ -30,7 +41,7 @@ export function fixtureToFields(fixture: Fixture): Field[] {
 }
 
 export function statusToFields(status: Status): Field[] {
-    // This order is the public signing contract for status payloads.
+    // Public signing contract for status payloads (v1.1, 7 fields).
     return [
         Field(status.fixtureID),
         Field(status.localTeamID),
@@ -38,6 +49,7 @@ export function statusToFields(status: Status): Field[] {
         Field(status.startingAt),
         Field(status.status),
         Field(status.winnerTeamID),
+        Field(status.outcome),
     ];
 }
 
@@ -55,4 +67,4 @@ export function signStatus(privateKeyBase58: string, status: Status) {
     const privateKey = PrivateKey.fromBase58(privateKeyBase58);
     const fieldsToSign = statusToFields(status);
     return Signature.create(privateKey, fieldsToSign);
-} 
+}

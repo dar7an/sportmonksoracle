@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { PrivateKey } from "o1js";
-import { Fixture, signFixture, signStatus, Status } from "./oracleUtils";
 import { OracleError } from "./errors";
+import { Fixture, signFixture, signStatus, Status } from "./oracleUtils";
 import { ProcessedFixtureData } from "./sportmonks";
 
 export interface SignedResponse<TData> {

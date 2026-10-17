@@ -1,15 +1,17 @@
-import { getOracleEnv } from "../../../src/config";
+import { getOracleEnv, getStatusCacheSeconds } from "../../../src/config";
 import { errorResponse, jsonResponse } from "../../../src/errors";
+import { enforceRateLimit } from "../../../src/rateLimit";
 import { signStatusResponse } from "../../../src/signing";
 import { fetchFixtureStatus, parseFixtureId } from "../../../src/sportmonks";
 
-const STATUS_CACHE_SECONDS = Number(process.env.STATUS_CACHE_SECONDS ?? 15);
+export const runtime = "nodejs";
 
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ fixtureID: string }> }
 ) {
     try {
+        enforceRateLimit(request);
         const env = getOracleEnv();
         const { fixtureID } = await params;
         const fixtureStatus = await fetchFixtureStatus(
@@ -20,7 +22,7 @@ export async function GET(
         return jsonResponse(
             signStatusResponse(fixtureStatus, env.privateKey),
             200,
-            STATUS_CACHE_SECONDS
+            getStatusCacheSeconds()
         );
     } catch (error) {
         return errorResponse(error);

@@ -4,13 +4,20 @@ export type ErrorCode =
     | "NOT_FOUND"
     | "SIGNING_ERROR"
     | "SPORTMONKS_AUTH_ERROR"
-    | "SPORTMONKS_ERROR";
+    | "SPORTMONKS_ERROR"
+    | "SPORTMONKS_RATE_LIMIT"
+    | "UNKNOWN_STATUS"
+    | "MALFORMED_UPSTREAM"
+    | "UPSTREAM_TIMEOUT"
+    | "RATE_LIMITED"
+    | "INTERNAL_ERROR";
 
 export class OracleError extends Error {
     constructor(
         public readonly status: number,
         public readonly code: ErrorCode,
-        message: string
+        message: string,
+        public readonly responseHeaders?: Record<string, string>
     ) {
         super(message);
         this.name = "OracleError";
@@ -19,15 +26,22 @@ export class OracleError extends Error {
 
 export function errorResponse(error: unknown): Response {
     if (error instanceof OracleError) {
-        return Response.json(
-            { error: error.message, code: error.code },
-            { status: error.status }
-        );
+        const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+        if (error.responseHeaders) {
+            for (const [key, value] of Object.entries(error.responseHeaders)) {
+                headers.set(key, value);
+            }
+        }
+
+        return new Response(JSON.stringify({ error: error.message, code: error.code }), {
+            status: error.status,
+            headers,
+        });
     }
 
     console.error("Unhandled oracle error:", error);
     return Response.json(
-        { error: "Unexpected oracle error", code: "SPORTMONKS_ERROR" },
+        { error: "Unexpected oracle error", code: "INTERNAL_ERROR" },
         { status: 500 }
     );
 }

@@ -35,5 +35,5 @@ GitHub Actions runs the same checks for pushes and pull requests to `main`.
 ## Signing Contract
 
 The field order is part of the public contract with consumer apps. Treat changes to
-`fixtureToFields` and `statusToFields` as breaking changes unless the consuming
-app changes at the same time.
+`fixtureToFields` and `statusToFields`, status codes 1–6, and outcome codes 0–3
+as breaking unless consuming apps change at the same time.
